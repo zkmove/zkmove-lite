@@ -1,11 +1,12 @@
 // Copyright (c) zkMove Authors
 
-use error::VmResult;
-use halo2::{arithmetic::FieldExt, circuit::Cell};
+use error::{RuntimeError, StatusCode, VmResult};
+use halo2_proofs::{arithmetic::FieldExt, circuit::Cell};
 use movelang::value::MoveValue::{Bool, U128, U64, U8};
+use movelang::value::{convert_to_field, move_div, move_rem};
 use movelang::value::{MoveValue, MoveValueType};
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct FConstant<F: FieldExt> {
     pub value: F,
     pub cell: Option<Cell>,
@@ -29,7 +30,7 @@ impl<F: FieldExt> FConstant<F> {
     }
 }
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct FVariable<F: FieldExt> {
     pub value: Option<F>,
     pub cell: Option<Cell>,
@@ -55,7 +56,7 @@ impl<F: FieldExt> FVariable<F> {
     }
 }
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub enum Value<F: FieldExt> {
     Invalid,
     Constant(FConstant<F>),
@@ -78,7 +79,7 @@ impl<F: FieldExt> Value<F> {
         }))
     }
     pub fn u8(x: u8, cell: Option<Cell>) -> VmResult<Self> {
-        let value = F::from_u64(x as u64); //todo: range check
+        let value = F::from_u128(x as u128); //todo: range check
         Ok(Self::Constant(FConstant {
             value,
             cell,
@@ -86,7 +87,7 @@ impl<F: FieldExt> Value<F> {
         }))
     }
     pub fn u64(x: u64, cell: Option<Cell>) -> VmResult<Self> {
-        let value = F::from_u64(x);
+        let value = F::from_u128(x as u128);
         Ok(Self::Constant(FConstant {
             value,
             cell,
@@ -132,6 +133,116 @@ impl<F: FieldExt> Value<F> {
             (Self::Variable(v1), Self::Variable(v2)) => v1.equals(v2),
             _ => false,
         }
+    }
+
+    pub fn is_zero(&self) -> bool {
+        match self.value() {
+            Some(v) => v.is_zero_vartime(),
+            None => false,
+        }
+    }
+}
+
+impl<F: FieldExt> PartialEq for Value<F> {
+    fn eq(&self, other: &Self) -> bool {
+        self.equals(other)
+    }
+}
+
+impl<F: FieldExt> Eq for Value<F> {}
+
+impl<F: FieldExt> Value<F> {
+    pub fn add(a: Value<F>, b: Value<F>) -> VmResult<Value<F>> {
+        let value = a.value().and_then(|a| b.value().map(|b| a + b));
+        let c = Value::new_variable(value, None, a.ty())?;
+        Ok(c)
+    }
+
+    pub fn sub(a: Value<F>, b: Value<F>) -> VmResult<Value<F>> {
+        let value = a.value().and_then(|a| b.value().map(|b| a - b));
+        let c = Value::new_variable(value, None, a.ty())?;
+        Ok(c)
+    }
+
+    pub fn mul(a: Value<F>, b: Value<F>) -> VmResult<Value<F>> {
+        let value = a.value().and_then(|a| b.value().map(|b| a * b));
+        let c = Value::new_variable(value, None, a.ty())?;
+        Ok(c)
+    }
+
+    pub fn div(a: Value<F>, b: Value<F>) -> VmResult<Value<F>> {
+        let l_move: Option<MoveValue> = a.clone().into();
+        let r_move: Option<MoveValue> = b.clone().into();
+        match (l_move, r_move) {
+            (Some(l), Some(r)) => {
+                let quo = move_div(l, r)?;
+                let v = Some(convert_to_field::<F>(quo));
+                let value = Value::new_variable(v, None, a.ty())?;
+                Ok(value)
+            }
+            _ => Err(RuntimeError::new(StatusCode::ValueConversionError)
+                .with_message("Move value should not be None".to_string())),
+        }
+    }
+
+    pub fn rem(a: Value<F>, b: Value<F>) -> VmResult<Value<F>> {
+        let l_move: Option<MoveValue> = a.clone().into();
+        let r_move: Option<MoveValue> = b.clone().into();
+        match (l_move, r_move) {
+            (Some(l), Some(r)) => {
+                let rem = move_rem(l, r)?;
+                let v = Some(convert_to_field::<F>(rem));
+                let value = Value::new_variable(v, None, a.ty())?;
+                Ok(value)
+            }
+            _ => Err(RuntimeError::new(StatusCode::ValueConversionError)
+                .with_message("Move value should not be None".to_string())),
+        }
+    }
+
+    pub fn eq(a: Value<F>, b: Value<F>) -> VmResult<Value<F>> {
+        let value = match (a.value(), b.value()) {
+            (Some(a), Some(b)) => {
+                let fr = if a == b { F::one() } else { F::zero() };
+                Some(fr)
+            }
+            _ => None,
+        };
+
+        let c = Value::new_variable(value, None, MoveValueType::Bool)?;
+        Ok(c)
+    }
+
+    pub fn neq(a: Value<F>, b: Value<F>) -> VmResult<Value<F>> {
+        let value = if !a.equals(&b) { F::one() } else { F::zero() };
+        let c = Value::new_variable(Some(value), None, MoveValueType::Bool)?;
+        Ok(c)
+    }
+
+    pub fn and(a: Value<F>, b: Value<F>) -> VmResult<Value<F>> {
+        let value = if a.is_zero() || b.is_zero() {
+            F::zero()
+        } else {
+            F::one()
+        };
+        let c = Value::new_variable(Some(value), None, MoveValueType::Bool)?;
+        Ok(c)
+    }
+
+    pub fn or(a: Value<F>, b: Value<F>) -> VmResult<Value<F>> {
+        let value = if a.is_zero() && b.is_zero() {
+            F::zero()
+        } else {
+            F::one()
+        };
+        let c = Value::new_variable(Some(value), None, MoveValueType::Bool)?;
+        Ok(c)
+    }
+
+    pub fn not(v: Value<F>) -> VmResult<Value<F>> {
+        let value = if v.is_zero() { F::one() } else { F::zero() };
+        let c = Value::new_variable(Some(value), None, MoveValueType::Bool)?;
+        Ok(c)
     }
 }
 

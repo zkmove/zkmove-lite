@@ -1,8 +1,8 @@
 // Copyright (c) zkMove Authors
 
 use anyhow::Result;
-use halo2::pasta::EqAffine;
-use halo2::poly::commitment::Params;
+use halo2_proofs::pasta::{EqAffine, Fp};
+use halo2_proofs::poly::commitment::Params;
 use logger::prelude::*;
 use movelang::state::StateStore;
 use movelang::{argument::ScriptArguments, compiler::compile_script};
@@ -103,13 +103,16 @@ fn vm_test(path: &Path) -> datatest_stable::Result<()> {
             script_file
         );
         runtime.prove_script(
-            script_bytes,
-            compiled_modules,
-            config.args,
+            script_bytes.clone(),
+            compiled_modules.clone(),
+            config.args.clone(),
             &mut state,
             &params,
             pk,
         )?;
+
+        debug!("Generate execution trace for script {:?}", script_file);
+        // runtime.generate_trace::<Fp>(script_bytes, compiled_modules, config.args, &mut state)?;
     }
 
     Ok(())
