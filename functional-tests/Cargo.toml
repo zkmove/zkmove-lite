@@ -1,0 +1,21 @@
+[package]
+name = "functional-tests"
+version = "0.1.0"
+authors = ["Guangyu Zhu <guangyuz@gmail.com>"]
+edition = "2018"
+
+[dependencies]
+anyhow = "1.0.38"
+logger = { path = "../common/logger" }
+movelang = { path = "../movelang"}
+rand_core = { version = "0.6", default-features = false }
+vm = { path = "../vm" }
+halo2_proofs = { git = "https://github.com/zkmove/halo2", rev = "dd03f6e82c1272636906fe45e37dd2d1ef9896a9" }
+#halo2_proofs = { path = "../../halo2/halo2_proofs"}
+
+[dev-dependencies]
+datatest-stable = "0.1.1"
+
+[[test]]
+name = "testsuite"
+harness = false
