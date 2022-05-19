@@ -11,7 +11,6 @@ movelang = { path = "../movelang"}
 rand_core = { version = "0.6", default-features = false }
 vm = { path = "../vm" }
 halo2_proofs = { git = "https://github.com/zkmove/halo2", rev = "e5c022414e62154b66b9fbef463912768c15556a" }
-#halo2_proofs = { path = "../../halo2/halo2_proofs"}
 
 [dev-dependencies]
 datatest-stable = "0.1.1"

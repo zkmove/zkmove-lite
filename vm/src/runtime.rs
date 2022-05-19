@@ -2,7 +2,6 @@
 
 use crate::move_circuit::FastMoveCircuit;
 use error::{RuntimeError, StatusCode, VmResult};
-use halo2_proofs::arithmetic::FieldExt;
 use halo2_proofs::plonk::{
     create_proof, keygen_pk, keygen_vk, verify_proof, ProvingKey, SingleVerifier,
 };
@@ -13,7 +12,7 @@ use logger::prelude::*;
 use move_binary_format::CompiledModule;
 use movelang::argument::ScriptArguments;
 use movelang::loader::MoveLoader;
-use movelang::state::{State, StateStore};
+use movelang::state::StateStore;
 use rand_core::OsRng;
 
 pub struct Runtime {

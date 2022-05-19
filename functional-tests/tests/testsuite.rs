@@ -1,7 +1,7 @@
 // Copyright (c) zkMove Authors
 
 use anyhow::Result;
-use halo2_proofs::pasta::{EqAffine, Fp};
+use halo2_proofs::pasta::EqAffine;
 use halo2_proofs::poly::commitment::Params;
 use logger::prelude::*;
 use movelang::state::StateStore;
@@ -64,7 +64,7 @@ fn vm_test(path: &Path) -> datatest_stable::Result<()> {
         config.args, targets
     );
 
-    let (compiled_script, compiled_modules) = compile_script(&targets)?;
+    let (compiled_script, compiled_modules) = compile_script(targets)?;
 
     if let Some(script) = compiled_script {
         let mut script_bytes = vec![];
