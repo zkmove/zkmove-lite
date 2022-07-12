@@ -1,4 +1,5 @@
 // Copyright (c) zkMove Authors
+// SPDX-License-Identifier: Apache-2.0
 
 use crate::evaluation_chip::EvaluationChip;
 use crate::instructions::{ArithmeticInstructions, Instructions, LogicalInstructions};
@@ -225,7 +226,7 @@ impl<F: FieldExt> Block<F> {
                 }?;
 
                 if Some(self.pc) == self.end {
-                    debug!("reach BranchEnd at pc {}", self.pc);
+                    trace!("reach BranchEnd at pc {}", self.pc);
                     return Ok(ExitStatus::BranchEnd(self.pc));
                 }
                 self.pc += 1;

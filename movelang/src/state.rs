@@ -1,4 +1,5 @@
 // Copyright (c) zkMove Authors
+// SPDX-License-Identifier: Apache-2.0
 
 use move_binary_format::errors::{Location, PartialVMError};
 use move_binary_format::errors::{PartialVMResult, VMResult};

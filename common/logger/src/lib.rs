@@ -1,4 +1,5 @@
 // Copyright (c) zkMove Authors
+// SPDX-License-Identifier: Apache-2.0
 
 use env_logger::{Builder, Env};
 pub use log::{debug, error, info, log_enabled, trace, warn, Level};

@@ -1,4 +1,5 @@
 // Copyright (c) zkMove Authors
+// SPDX-License-Identifier: Apache-2.0
 
 use crate::circuit::MoveCircuit;
 use error::{RuntimeError, StatusCode, VmResult};

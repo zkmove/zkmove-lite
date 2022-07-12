@@ -1,4 +1,5 @@
 // Copyright (c) zkMove Authors
+// SPDX-License-Identifier: Apache-2.0
 
 use crate::evaluation_chip::EvaluationChip;
 use crate::interpreter::Interpreter;
@@ -140,9 +141,9 @@ impl<F: FieldExt> Frame<F> {
                 ExitStatus::Return => return Ok(ExitStatus::Return),
                 ExitStatus::Call(index) => return Ok(ExitStatus::Call(index)),
                 ExitStatus::ConditionalBranch(cb) => {
-                    debug!("handle conditional branch");
+                    trace!("handle conditional branch");
                     let block = self.prepare_conditional_block(cb.pc, cb.condition)?;
-                    debug!("{:?}", block);
+                    trace!("{:?}", block);
                     self.blocks.push(self.current_block.clone())?;
                     self.current_block = block;
                 }
@@ -152,13 +153,13 @@ impl<F: FieldExt> Frame<F> {
                             (Some(t_branch), Some(f_branch)) => {
                                 if t_branch.is_running {
                                     debug_assert!(t_branch.block.end() == Some(pc));
-                                    debug!("switch conditional branch");
+                                    trace!("switch conditional branch");
                                     t_branch.is_running = false;
                                     f_branch.is_running = true;
                                 } else {
                                     debug_assert!(f_branch.is_running);
                                     debug_assert!(f_branch.block.end() == Some(pc));
-                                    debug!("merge the branch");
+                                    trace!("merge the branch");
                                     let mut next_running = self.blocks.pop().ok_or_else(|| {
                                         RuntimeError::new(StatusCode::ShouldNotReachHere)
                                     })?;
@@ -177,7 +178,7 @@ impl<F: FieldExt> Frame<F> {
                             }
                             (Some(t_branch), None) => {
                                 debug_assert!(t_branch.block.end() == Some(pc));
-                                debug!("merge the branch");
+                                trace!("merge the branch");
                                 let mut next_running = self.blocks.pop().ok_or_else(|| {
                                     RuntimeError::new(StatusCode::ShouldNotReachHere)
                                 })?;
@@ -187,7 +188,7 @@ impl<F: FieldExt> Frame<F> {
                             }
                             (None, Some(f_branch)) => {
                                 debug_assert!(f_branch.block.end() == Some(pc));
-                                debug!("merge the branch");
+                                trace!("merge the branch");
                                 let mut next_running = self.blocks.pop().ok_or_else(|| {
                                     RuntimeError::new(StatusCode::ShouldNotReachHere)
                                 })?;
@@ -205,7 +206,7 @@ impl<F: FieldExt> Frame<F> {
                         match (&mut cb.true_branch, &mut cb.false_branch) {
                             (None, Some(f_branch)) => {
                                 debug_assert!(f_branch.block.end() == Some(pc));
-                                debug!("handle Abort");
+                                trace!("handle Abort");
                                 let cond = f_branch.block.condition();
                                 self.current_block = self.blocks.pop().ok_or_else(|| {
                                     RuntimeError::new(StatusCode::ShouldNotReachHere)

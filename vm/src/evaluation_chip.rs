@@ -1,4 +1,5 @@
 // Copyright (c) zkMove Authors
+// SPDX-License-Identifier: Apache-2.0
 
 use crate::chips::arithmetic::{ArithmeticChip, ArithmeticConfig};
 use crate::chips::conditional_select::{ConditionalSelectChip, ConditionalSelectConfig};

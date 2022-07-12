@@ -1,4 +1,6 @@
 // Copyright (c) zkMove Authors
+// SPDX-License-Identifier: Apache-2.0
+// SPDX-License-Identifier: Apache-2.0
 
 use move_binary_format::errors::VMResult;
 use move_binary_format::file_format::FunctionHandleIndex;

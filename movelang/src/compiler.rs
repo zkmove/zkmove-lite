@@ -1,4 +1,5 @@
 // Copyright (c) zkMove Authors
+// SPDX-License-Identifier: Apache-2.0
 
 use anyhow::{bail, Result};
 use move_binary_format::file_format::CompiledScript;

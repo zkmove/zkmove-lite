@@ -1,4 +1,5 @@
 // Copyright (c) zkMove Authors
+// SPDX-License-Identifier: Apache-2.0
 
 use anyhow::Result;
 use halo2_proofs::pasta::{EqAffine, Fp};
@@ -90,7 +91,6 @@ fn vm_test(path: &Path) -> datatest_stable::Result<()> {
     );
     runtime.mock_prove_circuit(&move_circuit, vec![public_inputs.clone()], k)?;
 
-    debug!("Generate parameters for script {:?}", script_file);
     let params: Params<EqAffine> = Params::new(k);
     let pk = runtime.setup_move_circuit(&move_circuit, &params)?;
 

@@ -1,4 +1,5 @@
 // Copyright (c) zkMove Authors
+// SPDX-License-Identifier: Apache-2.0
 
 use halo2_proofs::plonk::{Error as ProofSystemError, Error};
 use logger::prelude::*;
