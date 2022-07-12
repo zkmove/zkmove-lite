@@ -1,7 +1,7 @@
 // Copyright (c) zkMove Authors
 
 use anyhow::Result;
-use halo2_proofs::pasta::EqAffine;
+use halo2_proofs::pasta::{EqAffine, Fp};
 use halo2_proofs::poly::commitment::Params;
 use logger::prelude::*;
 use movelang::state::StateStore;
@@ -65,55 +65,40 @@ fn vm_test(path: &Path) -> datatest_stable::Result<()> {
     );
 
     let (compiled_script, compiled_modules) = compile_script(targets)?;
+    let script = compiled_script.expect("script is missing");
+    let runtime = Runtime::<Fp>::new();
+    let mut state = StateStore::new();
 
-    if let Some(script) = compiled_script {
-        let mut script_bytes = vec![];
-        script.serialize(&mut script_bytes)?;
-
-        let k = 6;
-        let runtime = Runtime::new();
-        let mut state = StateStore::new();
-        for module in compiled_modules.clone().into_iter() {
-            state.add_module(module);
-        }
-
-        debug!(
-            "Generate zk proof for script {:?} with mock prover",
-            script_file
-        );
-        runtime.mock_prove_script(
-            script_bytes.clone(),
-            compiled_modules.clone(),
-            config.args.clone(),
-            &mut state,
-            k,
-        )?;
-
-        debug!("Generate parameters for script {:?}", script_file);
-        let params: Params<EqAffine> = Params::new(k);
-        let pk = runtime.setup_script(
-            script_bytes.clone(),
-            compiled_modules.clone(),
-            &mut state,
-            &params,
-        )?;
-
-        debug!(
-            "Generate zk proof for script {:?} with real prover",
-            script_file
-        );
-        runtime.prove_script(
-            script_bytes.clone(),
-            compiled_modules.clone(),
-            config.args.clone(),
-            &mut state,
-            &params,
-            pk,
-        )?;
-
-        debug!("Generate execution trace for script {:?}", script_file);
-        // runtime.generate_trace::<Fp>(script_bytes, compiled_modules, config.args, &mut state)?;
+    for module in compiled_modules.clone().into_iter() {
+        state.add_module(module);
     }
+
+    let move_circuit = runtime.create_move_circuit(
+        script.clone(),
+        compiled_modules.clone(),
+        config.args.clone(),
+        state.clone(),
+    );
+    let public_inputs = vec![Fp::zero()];
+    debug!("Find the best suitable k for the circuit...");
+    let k = runtime.find_best_k(&move_circuit, vec![public_inputs.clone()])?;
+    info!("use move circuit, k = {}", k);
+
+    debug!(
+        "Generate zk proof for script {:?} with mock prover",
+        script_file
+    );
+    runtime.mock_prove_circuit(&move_circuit, vec![public_inputs.clone()], k)?;
+
+    debug!("Generate parameters for script {:?}", script_file);
+    let params: Params<EqAffine> = Params::new(k);
+    let pk = runtime.setup_move_circuit(&move_circuit, &params)?;
+
+    debug!(
+        "Generate zk proof for script {:?} with real prover",
+        script_file
+    );
+    runtime.prove_move_circuit(move_circuit, &[public_inputs.as_slice()], &params, pk)?;
 
     Ok(())
 }

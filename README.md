@@ -1,1 +1,1 @@
-# zkmove-core
+# zkmove-lite

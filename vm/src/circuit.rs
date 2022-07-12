@@ -8,33 +8,34 @@ use halo2_proofs::{
     plonk::{Circuit, ConstraintSystem, Error},
 };
 use logger::prelude::*;
+use move_binary_format::file_format::CompiledScript;
 use move_binary_format::CompiledModule;
 use movelang::argument::ScriptArguments;
 use movelang::loader::MoveLoader;
-use movelang::state::{State, StateStore};
+use movelang::state::StateStore;
 
 #[derive(Clone)]
-pub struct FastMoveCircuit<'l, 's> {
-    script: Vec<u8>,
+pub struct MoveCircuit<'l> {
+    script: CompiledScript,
     modules: Vec<CompiledModule>,
     args: Option<ScriptArguments>,
-    state: State<'s>,
+    state: StateStore,
     loader: &'l MoveLoader,
 }
 
-impl<'l, 's> FastMoveCircuit<'l, 's> {
+impl<'l> MoveCircuit<'l> {
     pub fn new(
-        script: Vec<u8>,
+        script: CompiledScript,
         modules: Vec<CompiledModule>,
         args: Option<ScriptArguments>,
-        state_store: &'s mut StateStore,
+        state_store: StateStore,
         loader: &'l MoveLoader,
     ) -> Self {
-        FastMoveCircuit {
+        MoveCircuit {
             script,
             modules,
             args,
-            state: State::new(state_store),
+            state: state_store,
             loader,
         }
     }
@@ -43,12 +44,12 @@ impl<'l, 's> FastMoveCircuit<'l, 's> {
         &self.loader
     }
 
-    pub fn state(&self) -> &'s State {
+    pub fn state(&self) -> &StateStore {
         &self.state
     }
 }
 
-impl<'l, 's, F: FieldExt> Circuit<F> for FastMoveCircuit<'l, 's> {
+impl<'l, F: FieldExt> Circuit<F> for MoveCircuit<'l> {
     type Config = EvaluationConfig;
     type FloorPlanner = SimpleFloorPlanner;
 
@@ -57,7 +58,7 @@ impl<'l, 's, F: FieldExt> Circuit<F> for FastMoveCircuit<'l, 's> {
             script: self.script.clone(),
             modules: self.modules.clone(),
             args: None,
-            state: State::new(self.state.state_store),
+            state: self.state.clone(),
             loader: self.loader(),
         }
     }
@@ -84,14 +85,20 @@ impl<'l, 's, F: FieldExt> Circuit<F> for FastMoveCircuit<'l, 's> {
         // let state_root = evaluation_chip.load_private(layouter.namespace(|| "load state root"), Some(F::zero()))?;
         let mut interp = Interpreter::new();
 
+        let mut script_bytes = vec![];
+        self.script.serialize(&mut script_bytes).map_err(|e| {
+            error!("serialize script failed: {:?}", e);
+            Error::Synthesis
+        })?;
+
         let (entry, arg_types) = self
             .loader()
-            .load_script(&self.script, &mut self.state.clone())
+            .load_script(&script_bytes, &self.state)
             .map_err(|e| {
                 error!("load script failed: {:?}", e);
                 Error::Synthesis
             })?;
-        debug!("script entry {:?}", entry.name());
+        trace!("script entry {:?}", entry.name());
 
         // condition is true by default
         interp.conditions().push(F::one()).map_err(|e| {

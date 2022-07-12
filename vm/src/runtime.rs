@@ -1,28 +1,37 @@
 // Copyright (c) zkMove Authors
 
-use crate::move_circuit::FastMoveCircuit;
+use crate::circuit::MoveCircuit;
 use error::{RuntimeError, StatusCode, VmResult};
+use halo2_proofs::arithmetic::FieldExt;
 use halo2_proofs::plonk::{
-    create_proof, keygen_pk, keygen_vk, verify_proof, ProvingKey, SingleVerifier,
+    create_proof, keygen_pk, keygen_vk, verify_proof, Circuit, Error, ProvingKey, SingleVerifier,
 };
 use halo2_proofs::poly::commitment::Params;
 use halo2_proofs::transcript::{Blake2bRead, Blake2bWrite, Challenge255};
 use halo2_proofs::{dev::MockProver, pasta::EqAffine, pasta::Fp};
 use logger::prelude::*;
+use move_binary_format::file_format::CompiledScript;
 use move_binary_format::CompiledModule;
 use movelang::argument::ScriptArguments;
 use movelang::loader::MoveLoader;
 use movelang::state::StateStore;
 use rand_core::OsRng;
+use std::marker::PhantomData;
 
-pub struct Runtime {
+// number of circuit rows cannot exceed 2^MAX_K
+pub const MAX_K: u32 = 18;
+pub const MIN_K: u32 = 1;
+
+pub struct Runtime<F: FieldExt> {
     loader: MoveLoader,
+    _marker: PhantomData<F>,
 }
 
-impl Runtime {
+impl<F: FieldExt> Runtime<F> {
     pub fn new() -> Self {
         Runtime {
             loader: MoveLoader::new(),
+            _marker: PhantomData,
         }
     }
 
@@ -30,87 +39,102 @@ impl Runtime {
         &self.loader
     }
 
-    pub fn mock_prove_script(
+    pub fn create_move_circuit(
         &self,
-        script: Vec<u8>,
+        script: CompiledScript,
         modules: Vec<CompiledModule>,
         args: Option<ScriptArguments>,
-        data_store: &mut StateStore,
+        data_store: StateStore,
+    ) -> MoveCircuit {
+        MoveCircuit::new(script, modules, args, data_store, self.loader())
+    }
+
+    // find the minimum k that satisfies the circuit row number less than 2^k
+    pub fn find_best_k<ConcreteCircuit: Circuit<F>>(
+        &self,
+        circuit: &ConcreteCircuit,
+        instance: Vec<Vec<F>>,
+    ) -> VmResult<u32> {
+        let mut k = MIN_K;
+        while k <= MAX_K {
+            trace!("Try k={}...", k);
+            let not_enough_rows_error = Error::NotEnoughRowsAvailable { current_k: k };
+            let result = MockProver::run(k, circuit, instance.clone());
+            match result {
+                Ok(_) => {
+                    break;
+                }
+                Err(e) => {
+                    if e.to_string() == not_enough_rows_error.to_string() {
+                        k += 1;
+                    } else {
+                        debug!("Prover Error: {:?}", e);
+                        return Err(RuntimeError::new(StatusCode::ProofSystemError(e)));
+                    }
+                }
+            }
+        }
+        Ok(k)
+    }
+
+    pub fn mock_prove_circuit<ConcreteCircuit: Circuit<F>>(
+        &self,
+        circuit: &ConcreteCircuit,
+        instance: Vec<Vec<F>>,
         k: u32,
     ) -> VmResult<()> {
-        let circuit = FastMoveCircuit::new(script, modules, args, data_store, self.loader());
-
-        let public_inputs = vec![Fp::zero()];
-        let prover = MockProver::<Fp>::run(k, &circuit, vec![public_inputs]).map_err(|e| {
+        let prover = MockProver::run(k, circuit, instance).map_err(|e| {
             debug!("Prover Error: {:?}", e);
             RuntimeError::new(StatusCode::ProofSystemError(e))
         })?;
         assert_eq!(prover.verify(), Ok(()));
+
         Ok(())
     }
 
-    pub fn setup_script(
+    pub fn setup_move_circuit(
         &self,
-        script: Vec<u8>,
-        modules: Vec<CompiledModule>,
-        data_store: &mut StateStore,
+        circuit: &MoveCircuit,
         params: &Params<EqAffine>,
     ) -> VmResult<ProvingKey<EqAffine>> {
-        let circuit = FastMoveCircuit::new(script, modules, None, data_store, self.loader());
         debug!("Generate vk");
-        let vk = keygen_vk(params, &circuit).map_err(|e| {
+        let vk = keygen_vk(params, circuit).map_err(|e| {
             RuntimeError::new(StatusCode::ProofSystemError(e))
                 .with_message("keygen_vk should not fail".to_string())
         })?;
         debug!("Generate pk");
-        let pk = keygen_pk(params, vk, &circuit).map_err(|e| {
+        let pk = keygen_pk(params, vk, circuit).map_err(|e| {
             RuntimeError::new(StatusCode::ProofSystemError(e))
                 .with_message("keygen_pk should not fail".to_string())
         })?;
         Ok(pk)
     }
 
-    pub fn prove_script(
+    pub fn prove_move_circuit(
         &self,
-        script: Vec<u8>,
-        modules: Vec<CompiledModule>,
-        args: Option<ScriptArguments>,
-        data_store: &mut StateStore,
+        circuit: MoveCircuit,
+        instance: &[&[Fp]],
         params: &Params<EqAffine>,
         pk: ProvingKey<EqAffine>,
     ) -> VmResult<()> {
-        let circuit = FastMoveCircuit::new(script, modules, args, data_store, self.loader());
-
-        let public_inputs = vec![Fp::zero()];
         let mut transcript = Blake2bWrite::<_, _, Challenge255<_>>::init(vec![]);
         // Create a proof
-        create_proof(
-            params,
-            &pk,
-            &[circuit],
-            &[&[public_inputs.as_slice()]],
-            OsRng,
-            &mut transcript,
-        )
-        .expect("proof generation should not fail");
+        let prove_start = std::time::Instant::now();
+        create_proof(params, &pk, &[circuit], &[instance], OsRng, &mut transcript)
+            .expect("proof generation should not fail");
         let proof: Vec<u8> = transcript.finalize();
+        info!("proof size {} bytes", proof.len());
+        let prove_time = std::time::Instant::now().duration_since(prove_start);
+        info!("prove time: {} ms", prove_time.as_millis());
 
-        let strategy = SingleVerifier::new(&params);
+        let strategy = SingleVerifier::new(params);
         let mut transcript = Blake2bRead::<_, _, Challenge255<_>>::init(&proof[..]);
-        let result = verify_proof(
-            params,
-            pk.get_vk(),
-            strategy,
-            &[&[public_inputs.as_slice()]],
-            &mut transcript,
-        );
+        let verify_start = std::time::Instant::now();
+        let result = verify_proof(params, pk.get_vk(), strategy, &[instance], &mut transcript);
+        let verify_time = std::time::Instant::now().duration_since(verify_start);
+        info!("verify time: {} ms", verify_time.as_millis());
+        info!("{:?}", result);
         assert!(result.is_ok());
         Ok(())
-    }
-}
-
-impl Default for Runtime {
-    fn default() -> Self {
-        Self::new()
     }
 }
