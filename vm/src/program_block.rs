@@ -95,10 +95,7 @@ impl<F: FieldExt> Block<F> {
                         $constant,
                         $ty,
                     )
-                    .map_err(|e| {
-                        error!("load constant failed: {:?}", e);
-                        RuntimeError::new(StatusCode::SynthesisError)
-                    })?;
+                    .map_err(|e| RuntimeError::from(e))?;
                 interp.stack.push(value)
             }};
         }
@@ -114,10 +111,7 @@ impl<F: FieldExt> Block<F> {
                         b,
                         self.condition(),
                     )
-                    .map_err(|e| {
-                        error!("step#{} failed: {:?}", interp.step, e);
-                        RuntimeError::new(StatusCode::SynthesisError)
-                    })?;
+                    .map_err(|e| RuntimeError::from(e))?;
                 interp.stack.push(c)
             }};
         }
@@ -222,10 +216,7 @@ impl<F: FieldExt> Block<F> {
                                 a,
                                 self.condition(),
                             )
-                            .map_err(|e| {
-                                error!("not op failed: {:?}", e);
-                                RuntimeError::new(StatusCode::SynthesisError)
-                            })?;
+                            .map_err(|e| RuntimeError::from(e))?;
                         interp.stack.push(b)
                     }
                     _ => unreachable!(),
@@ -410,7 +401,7 @@ impl<F: FieldExt> ProgramBlock<F> {
                             )
                             .map_err(|e| {
                                 error!("merge locals failed: {:?}", e);
-                                RuntimeError::new(StatusCode::SynthesisError)
+                                RuntimeError::from(e)
                             })?;
                         self.locals().store(i, local)?;
                     }

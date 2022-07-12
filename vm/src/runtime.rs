@@ -43,7 +43,7 @@ impl Runtime {
         let public_inputs = vec![Fp::zero()];
         let prover = MockProver::<Fp>::run(k, &circuit, vec![public_inputs]).map_err(|e| {
             debug!("Prover Error: {:?}", e);
-            RuntimeError::new(StatusCode::SynthesisError)
+            RuntimeError::new(StatusCode::ProofSystemError(e))
         })?;
         assert_eq!(prover.verify(), Ok(()));
         Ok(())
@@ -58,13 +58,13 @@ impl Runtime {
     ) -> VmResult<ProvingKey<EqAffine>> {
         let circuit = FastMoveCircuit::new(script, modules, None, data_store, self.loader());
         debug!("Generate vk");
-        let vk = keygen_vk(params, &circuit).map_err(|_| {
-            RuntimeError::new(StatusCode::SynthesisError)
+        let vk = keygen_vk(params, &circuit).map_err(|e| {
+            RuntimeError::new(StatusCode::ProofSystemError(e))
                 .with_message("keygen_vk should not fail".to_string())
         })?;
         debug!("Generate pk");
-        let pk = keygen_pk(params, vk, &circuit).map_err(|_| {
-            RuntimeError::new(StatusCode::SynthesisError)
+        let pk = keygen_pk(params, vk, &circuit).map_err(|e| {
+            RuntimeError::new(StatusCode::ProofSystemError(e))
                 .with_message("keygen_pk should not fail".to_string())
         })?;
         Ok(pk)

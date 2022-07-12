@@ -5,4 +5,6 @@ authors = ["Guangyu Zhu <guangyuz@gmail.com>"]
 edition = "2018"
 
 [dependencies]
-bellman = { package = "bellman_ce", version = "0.3.0" }
+anyhow = "1.0.38"
+logger = { path = "../logger" }
+halo2_proofs = { git = "https://github.com/zkmove/halo2", rev = "e5c022414e62154b66b9fbef463912768c15556a" }
