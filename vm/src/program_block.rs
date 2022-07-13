@@ -247,14 +247,14 @@ impl<F: FieldExt> std::fmt::Debug for Block<F> {
 
 #[derive(Clone, Debug)]
 pub struct Branch<F: FieldExt> {
-    pub block: Block<F>,
-    pub is_running: bool, //which arm of conditional branch is running
+    pub(crate) block: Block<F>,
+    pub(crate) is_running: bool, //which arm of conditional branch is running
 }
 
 #[derive(Clone, Debug)]
 pub struct ConditionalBlock<F: FieldExt> {
-    pub true_branch: Option<Branch<F>>,
-    pub false_branch: Option<Branch<F>>,
+    pub(crate) true_branch: Option<Branch<F>>,
+    pub(crate) false_branch: Option<Branch<F>>,
 }
 
 impl<F: FieldExt> ConditionalBlock<F> {

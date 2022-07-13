@@ -9,9 +9,9 @@ use movelang::value::{MoveValue, MoveValueType};
 
 #[derive(Clone, Debug)]
 pub struct FConstant<F: FieldExt> {
-    pub value: F,
-    pub cell: Option<Cell>,
-    pub ty: MoveValueType,
+    pub(crate) value: F,
+    pub(crate) cell: Option<Cell>,
+    pub(crate) ty: MoveValueType,
 }
 
 impl<F: FieldExt> FConstant<F> {
@@ -33,9 +33,9 @@ impl<F: FieldExt> FConstant<F> {
 
 #[derive(Clone, Debug)]
 pub struct FVariable<F: FieldExt> {
-    pub value: Option<F>,
-    pub cell: Option<Cell>,
-    pub ty: MoveValueType,
+    pub(crate) value: Option<F>,
+    pub(crate) cell: Option<Cell>,
+    pub(crate) ty: MoveValueType,
 }
 
 impl<F: FieldExt> FVariable<F> {

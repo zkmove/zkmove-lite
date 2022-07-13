@@ -5,4 +5,5 @@ members = [
     "common/logger",
     "common/error",
     "functional-tests",
+    "cli",
 ]

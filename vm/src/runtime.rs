@@ -16,6 +16,7 @@ use move_binary_format::CompiledModule;
 use movelang::argument::ScriptArguments;
 use movelang::loader::MoveLoader;
 use movelang::state::StateStore;
+use plotters::prelude::*;
 use rand_core::OsRng;
 use std::marker::PhantomData;
 
@@ -93,6 +94,22 @@ impl<F: FieldExt> Runtime<F> {
         Ok(())
     }
 
+    pub fn print_circuit_layout<ConcreteCircuit: Circuit<F>>(
+        &self,
+        k: u32,
+        circuit: &ConcreteCircuit,
+    ) {
+        let root = SVGBackend::new("layout.svg", (3840, 2160)).into_drawing_area();
+        root.fill(&WHITE).unwrap();
+        let root = root.titled("Circuit Layout", ("sans-serif", 60)).unwrap();
+
+        halo2_proofs::dev::CircuitLayout::default()
+            .mark_equality_cells(true)
+            .show_equality_constraints(true)
+            .render(k, circuit, &root)
+            .unwrap();
+    }
+
     pub fn setup_move_circuit(
         &self,
         circuit: &MoveCircuit,
@@ -126,15 +143,14 @@ impl<F: FieldExt> Runtime<F> {
         let proof: Vec<u8> = transcript.finalize();
         info!("proof size {} bytes", proof.len());
         let prove_time = std::time::Instant::now().duration_since(prove_start);
-        info!("prove time: {} ms", prove_time.as_millis());
+        info!("proving time: {} ms", prove_time.as_millis());
 
         let strategy = SingleVerifier::new(params);
         let mut transcript = Blake2bRead::<_, _, Challenge255<_>>::init(&proof[..]);
         let verify_start = std::time::Instant::now();
         let result = verify_proof(params, pk.get_vk(), strategy, &[instance], &mut transcript);
         let verify_time = std::time::Instant::now().duration_since(verify_start);
-        info!("verify time: {} ms", verify_time.as_millis());
-        info!("{:?}", result);
+        info!("verification time: {} ms", verify_time.as_millis());
         assert!(result.is_ok());
         Ok(())
     }
