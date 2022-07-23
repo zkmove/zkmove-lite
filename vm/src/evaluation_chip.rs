@@ -4,7 +4,7 @@
 use crate::chips::arithmetic::{ArithmeticChip, ArithmeticConfig};
 use crate::chips::conditional_select::{ConditionalSelectChip, ConditionalSelectConfig};
 use crate::chips::logical::{LogicalChip, LogicalConfig};
-use crate::instructions::{ArithmeticInstructions, Instructions, LogicalInstructions};
+use crate::instructions::Opcode;
 use crate::value::Value;
 use halo2_proofs::{
     arithmetic::FieldExt,
@@ -17,13 +17,8 @@ use std::marker::PhantomData;
 #[derive(Clone, Debug)]
 pub struct EvaluationConfig {
     advice: [Column<Advice>; 4],
-
-    // Public inputs
-    instance: Column<Instance>,
-
-    // Fixed column to load constants
-    constant: Column<Fixed>,
-
+    instance: Column<Instance>, // Public inputs
+    constant: Column<Fixed>,    // Fixed column to load constants
     arithmetic_config: ArithmeticConfig,
     logical_config: LogicalConfig,
     conditional_select_config: ConditionalSelectConfig,
@@ -31,142 +26,10 @@ pub struct EvaluationConfig {
 
 pub struct EvaluationChip<F: FieldExt> {
     config: EvaluationConfig,
+    arithmetic_chip: ArithmeticChip<F>,
+    logical_chip: LogicalChip<F>,
+    conditional_select_chip: ConditionalSelectChip<F>,
     _marker: PhantomData<F>,
-}
-
-impl<F: FieldExt> ArithmeticInstructions<F> for EvaluationChip<F> {
-    type Value = Value<F>;
-    fn add(
-        &self,
-        layouter: impl Layouter<F>,
-        a: Self::Value,
-        b: Self::Value,
-        cond: Option<F>,
-    ) -> Result<Self::Value, Error> {
-        let config = self.config().arithmetic_config.clone();
-
-        let arithmetic_chip = ArithmeticChip::<F>::construct(config, ());
-        arithmetic_chip.add(layouter, a, b, cond)
-    }
-
-    fn sub(
-        &self,
-        layouter: impl Layouter<F>,
-        a: Self::Value,
-        b: Self::Value,
-        cond: Option<F>,
-    ) -> Result<Self::Value, Error> {
-        let config = self.config().arithmetic_config.clone();
-
-        let arithmetic_chip = ArithmeticChip::<F>::construct(config, ());
-        arithmetic_chip.sub(layouter, a, b, cond)
-    }
-
-    fn mul(
-        &self,
-        layouter: impl Layouter<F>,
-        a: Self::Value,
-        b: Self::Value,
-        cond: Option<F>,
-    ) -> Result<Self::Value, Error> {
-        let config = self.config().arithmetic_config.clone();
-
-        let arithmetic_chip = ArithmeticChip::<F>::construct(config, ());
-        arithmetic_chip.mul(layouter, a, b, cond)
-    }
-
-    fn div(
-        &self,
-        layouter: impl Layouter<F>,
-        a: Self::Value,
-        b: Self::Value,
-        cond: Option<F>,
-    ) -> Result<Self::Value, Error> {
-        let config = self.config().arithmetic_config.clone();
-
-        let arithmetic_chip = ArithmeticChip::<F>::construct(config, ());
-        arithmetic_chip.div(layouter, a, b, cond)
-    }
-
-    fn rem(
-        &self,
-        layouter: impl Layouter<F>,
-        a: Self::Value,
-        b: Self::Value,
-        cond: Option<F>,
-    ) -> Result<Self::Value, Error> {
-        let config = self.config().arithmetic_config.clone();
-
-        let arithmetic_chip = ArithmeticChip::<F>::construct(config, ());
-        arithmetic_chip.rem(layouter, a, b, cond)
-    }
-}
-
-impl<F: FieldExt> LogicalInstructions<F> for EvaluationChip<F> {
-    type Value = Value<F>;
-    fn eq(
-        &self,
-        layouter: impl Layouter<F>,
-        a: Self::Value,
-        b: Self::Value,
-        cond: Option<F>,
-    ) -> Result<Self::Value, Error> {
-        let config = self.config().logical_config.clone();
-
-        let logical_chip = LogicalChip::<F>::construct(config, ());
-        logical_chip.eq(layouter, a, b, cond)
-    }
-
-    fn neq(
-        &self,
-        layouter: impl Layouter<F>,
-        a: Self::Value,
-        b: Self::Value,
-        cond: Option<F>,
-    ) -> Result<Self::Value, Error> {
-        let config = self.config().logical_config.clone();
-
-        let logical_chip = LogicalChip::<F>::construct(config, ());
-        logical_chip.neq(layouter, a, b, cond)
-    }
-
-    fn and(
-        &self,
-        layouter: impl Layouter<F>,
-        a: Self::Value,
-        b: Self::Value,
-        cond: Option<F>,
-    ) -> Result<Self::Value, Error> {
-        let config = self.config().logical_config.clone();
-
-        let logical_chip = LogicalChip::<F>::construct(config, ());
-        logical_chip.and(layouter, a, b, cond)
-    }
-
-    fn or(
-        &self,
-        layouter: impl Layouter<F>,
-        a: Self::Value,
-        b: Self::Value,
-        cond: Option<F>,
-    ) -> Result<Self::Value, Error> {
-        let config = self.config().logical_config.clone();
-
-        let logical_chip = LogicalChip::<F>::construct(config, ());
-        logical_chip.or(layouter, a, b, cond)
-    }
-
-    fn not(
-        &self,
-        layouter: impl Layouter<F>,
-        a: Self::Value,
-        cond: Option<F>,
-    ) -> Result<Self::Value, Error> {
-        let config = self.config().logical_config.clone();
-
-        let logical_chip = LogicalChip::<F>::construct(config, ());
-        logical_chip.not(layouter, a, cond)
-    }
 }
 
 impl<F: FieldExt> Chip<F> for EvaluationChip<F> {
@@ -187,8 +50,21 @@ impl<F: FieldExt> EvaluationChip<F> {
         config: <Self as Chip<F>>::Config,
         _loaded: <Self as Chip<F>>::Loaded,
     ) -> Self {
+        let arithmetic_config = config.arithmetic_config.clone();
+        let arithmetic_chip = ArithmeticChip::<F>::construct(arithmetic_config, ());
+
+        let logical_config = config.logical_config.clone();
+        let logical_chip = LogicalChip::<F>::construct(logical_config, ());
+
+        let conditional_select_config = config.conditional_select_config.clone();
+        let conditional_select_chip =
+            ConditionalSelectChip::<F>::construct(conditional_select_config, ());
+
         Self {
             config,
+            arithmetic_chip,
+            logical_chip,
+            conditional_select_chip,
             _marker: PhantomData,
         }
     }
@@ -224,22 +100,51 @@ impl<F: FieldExt> EvaluationChip<F> {
         b: Value<F>,
         cond: Option<F>,
     ) -> Result<Value<F>, Error> {
-        let config = self.config().conditional_select_config.clone();
-
-        let conditional_select_chip = ConditionalSelectChip::<F>::construct(config, ());
-        conditional_select_chip.conditional_select(layouter, a, b, cond)
+        self.conditional_select_chip
+            .conditional_select(layouter, a, b, cond)
     }
-}
 
-impl<F: FieldExt> Instructions<F> for EvaluationChip<F> {
-    type Value = Value<F>;
+    pub fn binary_op(
+        &self,
+        layouter: impl Layouter<F>,
+        opcode: Opcode,
+        a: Value<F>,
+        b: Value<F>,
+        cond: Option<F>,
+    ) -> Result<Value<F>, Error> {
+        match opcode {
+            Opcode::Add => self.arithmetic_chip.add(layouter, a, b, cond),
+            Opcode::Sub => self.arithmetic_chip.sub(layouter, a, b, cond),
+            Opcode::Mul => self.arithmetic_chip.mul(layouter, a, b, cond),
+            Opcode::Div => self.arithmetic_chip.div(layouter, a, b, cond),
+            Opcode::Mod => self.arithmetic_chip.rem(layouter, a, b, cond),
+            Opcode::Eq => self.logical_chip.eq(layouter, a, b, cond),
+            Opcode::Neq => self.logical_chip.neq(layouter, a, b, cond),
+            Opcode::And => self.logical_chip.and(layouter, a, b, cond),
+            Opcode::Or => self.logical_chip.or(layouter, a, b, cond),
+            _ => unreachable!(),
+        }
+    }
 
-    fn load_private(
+    pub fn unary_op(
+        &self,
+        layouter: impl Layouter<F>,
+        opcode: Opcode,
+        a: Value<F>,
+        cond: Option<F>,
+    ) -> Result<Value<F>, Error> {
+        match opcode {
+            Opcode::Not => self.logical_chip.not(layouter, a, cond),
+            _ => unreachable!(),
+        }
+    }
+
+    pub fn load_private(
         &self,
         mut layouter: impl Layouter<F>,
         value: Option<F>,
         ty: MoveValueType,
-    ) -> Result<<Self as Instructions<F>>::Value, Error> {
+    ) -> Result<Value<F>, Error> {
         let config = self.config();
 
         let mut alloc = None;
@@ -262,12 +167,12 @@ impl<F: FieldExt> Instructions<F> for EvaluationChip<F> {
         Ok(alloc.unwrap())
     }
 
-    fn load_constant(
+    pub fn load_constant(
         &self,
         mut layouter: impl Layouter<F>,
         constant: F,
         ty: MoveValueType,
-    ) -> Result<<Self as Instructions<F>>::Value, Error> {
+    ) -> Result<Value<F>, Error> {
         let config = self.config();
 
         let mut alloc = None;
@@ -291,10 +196,10 @@ impl<F: FieldExt> Instructions<F> for EvaluationChip<F> {
         Ok(alloc.unwrap())
     }
 
-    fn expose_public(
+    pub fn expose_public(
         &self,
         mut layouter: impl Layouter<F>,
-        value: <Self as Instructions<F>>::Value,
+        value: Value<F>,
         row: usize,
     ) -> Result<(), Error> {
         let config = self.config();

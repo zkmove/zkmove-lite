@@ -3,7 +3,6 @@
 
 use crate::evaluation_chip::EvaluationChip;
 use crate::frame::Frame;
-use crate::instructions::Instructions;
 use crate::locals::Locals;
 use crate::program_block::ExitStatus;
 use crate::stack::{CallStack, CondStack, EvalStack};

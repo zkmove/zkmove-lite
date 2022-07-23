@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 use crate::evaluation_chip::EvaluationChip;
-use crate::instructions::{ArithmeticInstructions, Instructions, LogicalInstructions};
+use crate::instructions::Opcode;
 use crate::interpreter::Interpreter;
 use crate::locals::Locals;
 use error::{RuntimeError, StatusCode, VmResult};
@@ -102,12 +102,13 @@ impl<F: FieldExt> Block<F> {
         }
 
         macro_rules! binary_op {
-            ($op:ident) => {{
+            ($opcode:expr) => {{
                 let b = interp.stack.pop()?;
                 let a = interp.stack.pop()?;
                 let c = evaluation_chip
-                    .$op(
+                    .binary_op(
                         layouter.namespace(|| format!("step#{}", interp.step)),
+                        $opcode,
                         a,
                         b,
                         self.condition(),
@@ -154,19 +155,19 @@ impl<F: FieldExt> Block<F> {
                         Ok(())
                     }
                     Bytecode::Add => {
-                        binary_op!(add)
+                        binary_op!(Opcode::Add)
                     }
                     Bytecode::Sub => {
-                        binary_op!(sub)
+                        binary_op!(Opcode::Sub)
                     }
                     Bytecode::Mul => {
-                        binary_op!(mul)
+                        binary_op!(Opcode::Mul)
                     }
                     Bytecode::Div => {
-                        binary_op!(div)
+                        binary_op!(Opcode::Div)
                     }
                     Bytecode::Mod => {
-                        binary_op!(rem)
+                        binary_op!(Opcode::Mod)
                     }
                     Bytecode::Ret => return Ok(ExitStatus::Return),
                     Bytecode::Call(index) => return Ok(ExitStatus::Call(*index)),
@@ -200,22 +201,23 @@ impl<F: FieldExt> Block<F> {
                         return Ok(ExitStatus::Abort(self.pc, error_code));
                     }
                     Bytecode::Eq => {
-                        binary_op!(eq)
+                        binary_op!(Opcode::Eq)
                     }
                     Bytecode::Neq => {
-                        binary_op!(neq)
+                        binary_op!(Opcode::Neq)
                     }
                     Bytecode::And => {
-                        binary_op!(and)
+                        binary_op!(Opcode::And)
                     }
                     Bytecode::Or => {
-                        binary_op!(or)
+                        binary_op!(Opcode::Or)
                     }
                     Bytecode::Not => {
                         let a = interp.stack.pop()?;
                         let b = evaluation_chip
-                            .not(
+                            .unary_op(
                                 layouter.namespace(|| format!("not op in step#{}", interp.step)),
+                                Opcode::Not,
                                 a,
                                 self.condition(),
                             )

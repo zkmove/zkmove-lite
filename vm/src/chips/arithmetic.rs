@@ -1,7 +1,6 @@
 // Copyright (c) zkMove Authors
 // SPDX-License-Identifier: Apache-2.0
 
-use crate::instructions::ArithmeticInstructions;
 use crate::value::Value;
 use halo2_proofs::{
     arithmetic::FieldExt,
@@ -168,16 +167,14 @@ macro_rules! div_rem {
     }};
 }
 
-impl<F: FieldExt> ArithmeticInstructions<F> for ArithmeticChip<F> {
-    type Value = Value<F>;
-
-    fn add(
+impl<F: FieldExt> ArithmeticChip<F> {
+    pub fn add(
         &self,
         mut layouter: impl Layouter<F>,
-        a: Self::Value,
-        b: Self::Value,
+        a: Value<F>,
+        b: Value<F>,
         cond: Option<F>,
-    ) -> Result<Self::Value, Error> {
+    ) -> Result<Value<F>, Error> {
         let config = self.config();
 
         let mut c = None;
@@ -207,13 +204,13 @@ impl<F: FieldExt> ArithmeticInstructions<F> for ArithmeticChip<F> {
         Ok(c.unwrap())
     }
 
-    fn sub(
+    pub fn sub(
         &self,
         mut layouter: impl Layouter<F>,
-        a: Self::Value,
-        b: Self::Value,
+        a: Value<F>,
+        b: Value<F>,
         cond: Option<F>,
-    ) -> Result<Self::Value, Error> {
+    ) -> Result<Value<F>, Error> {
         let config = self.config();
 
         let mut c = None;
@@ -243,13 +240,13 @@ impl<F: FieldExt> ArithmeticInstructions<F> for ArithmeticChip<F> {
         Ok(c.unwrap())
     }
 
-    fn mul(
+    pub fn mul(
         &self,
         mut layouter: impl Layouter<F>,
-        a: Self::Value,
-        b: Self::Value,
+        a: Value<F>,
+        b: Value<F>,
         cond: Option<F>,
-    ) -> Result<Self::Value, Error> {
+    ) -> Result<Value<F>, Error> {
         let config = self.config();
 
         let mut c = None;
@@ -279,13 +276,13 @@ impl<F: FieldExt> ArithmeticInstructions<F> for ArithmeticChip<F> {
         Ok(c.unwrap())
     }
 
-    fn div(
+    pub fn div(
         &self,
         mut layouter: impl Layouter<F>,
-        a: Self::Value,
-        b: Self::Value,
+        a: Value<F>,
+        b: Value<F>,
         cond: Option<F>,
-    ) -> Result<Self::Value, Error> {
+    ) -> Result<Value<F>, Error> {
         let config = self.config();
 
         let mut c = None;
@@ -322,13 +319,13 @@ impl<F: FieldExt> ArithmeticInstructions<F> for ArithmeticChip<F> {
         Ok(c.unwrap())
     }
 
-    fn rem(
+    pub fn rem(
         &self,
         mut layouter: impl Layouter<F>,
-        a: Self::Value,
-        b: Self::Value,
+        a: Value<F>,
+        b: Value<F>,
         cond: Option<F>,
-    ) -> Result<Self::Value, Error> {
+    ) -> Result<Value<F>, Error> {
         let config = self.config();
 
         let mut c = None;
