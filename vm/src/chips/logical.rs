@@ -1,7 +1,6 @@
 // Copyright (c) zkMove Authors
 // SPDX-License-Identifier: Apache-2.0
 
-use crate::instructions::LogicalInstructions;
 use crate::value::Value;
 use halo2_proofs::{
     arithmetic::FieldExt,
@@ -195,16 +194,14 @@ macro_rules! assign_delta_invert {
     }};
 }
 
-impl<F: FieldExt> LogicalInstructions<F> for LogicalChip<F> {
-    type Value = Value<F>;
-
-    fn eq(
+impl<F: FieldExt> LogicalChip<F> {
+    pub fn eq(
         &self,
         mut layouter: impl Layouter<F>,
-        a: Self::Value,
-        b: Self::Value,
+        a: Value<F>,
+        b: Value<F>,
         cond: Option<F>,
-    ) -> Result<Self::Value, Error> {
+    ) -> Result<Value<F>, Error> {
         let config = self.config();
 
         let mut c = None;
@@ -243,13 +240,13 @@ impl<F: FieldExt> LogicalInstructions<F> for LogicalChip<F> {
         Ok(c.unwrap())
     }
 
-    fn neq(
+    pub fn neq(
         &self,
         mut layouter: impl Layouter<F>,
-        a: Self::Value,
-        b: Self::Value,
+        a: Value<F>,
+        b: Value<F>,
         cond: Option<F>,
-    ) -> Result<Self::Value, Error> {
+    ) -> Result<Value<F>, Error> {
         let config = self.config();
 
         let mut c = None;
@@ -288,13 +285,13 @@ impl<F: FieldExt> LogicalInstructions<F> for LogicalChip<F> {
         Ok(c.unwrap())
     }
 
-    fn and(
+    pub fn and(
         &self,
         mut layouter: impl Layouter<F>,
-        a: Self::Value,
-        b: Self::Value,
+        a: Value<F>,
+        b: Value<F>,
         cond: Option<F>,
-    ) -> Result<Self::Value, Error> {
+    ) -> Result<Value<F>, Error> {
         let config = self.config();
 
         let mut c = None;
@@ -336,13 +333,13 @@ impl<F: FieldExt> LogicalInstructions<F> for LogicalChip<F> {
         Ok(c.unwrap())
     }
 
-    fn or(
+    pub fn or(
         &self,
         mut layouter: impl Layouter<F>,
-        a: Self::Value,
-        b: Self::Value,
+        a: Value<F>,
+        b: Value<F>,
         cond: Option<F>,
-    ) -> Result<Self::Value, Error> {
+    ) -> Result<Value<F>, Error> {
         let config = self.config();
 
         let mut c = None;
@@ -384,12 +381,12 @@ impl<F: FieldExt> LogicalInstructions<F> for LogicalChip<F> {
         Ok(c.unwrap())
     }
 
-    fn not(
+    pub fn not(
         &self,
         mut layouter: impl Layouter<F>,
-        a: Self::Value,
+        a: Value<F>,
         cond: Option<F>,
-    ) -> Result<Self::Value, Error> {
+    ) -> Result<Value<F>, Error> {
         let config = self.config();
 
         let mut b = None;

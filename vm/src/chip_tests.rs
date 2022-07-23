@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 use crate::evaluation_chip::{EvaluationChip, EvaluationConfig};
-use crate::instructions::{ArithmeticInstructions, Instructions, LogicalInstructions};
+use crate::instructions::Opcode;
 use halo2_proofs::{
     arithmetic::FieldExt,
     circuit::{Layouter, SimpleFloorPlanner},
@@ -62,26 +62,35 @@ impl<F: FieldExt> Circuit<F> for TestCircuit<F> {
             self.b,
             self.b_type.clone(),
         )?;
-        let c = evaluation_chip.add(
+        let c = evaluation_chip.binary_op(
             layouter.namespace(|| "a + b"),
+            Opcode::Add,
             a.clone(),
             b.clone(),
             self.cond,
         )?;
-        let d = evaluation_chip.sub(
+        let d = evaluation_chip.binary_op(
             layouter.namespace(|| "a - b"),
+            Opcode::Sub,
             a.clone(),
             b.clone(),
             self.cond,
         )?;
-        let e = evaluation_chip.mul(
+        let e = evaluation_chip.binary_op(
             layouter.namespace(|| "a * b"),
+            Opcode::Mul,
             a.clone(),
             b.clone(),
             self.cond,
         )?;
 
-        let f = evaluation_chip.eq(layouter.namespace(|| "a == b"), a, b, self.cond)?;
+        let f = evaluation_chip.binary_op(
+            layouter.namespace(|| "a == b"),
+            Opcode::Eq,
+            a,
+            b,
+            self.cond,
+        )?;
 
         evaluation_chip.expose_public(layouter.namespace(|| "expose c"), c, 0)?;
         evaluation_chip.expose_public(layouter.namespace(|| "expose d"), d, 1)?;
@@ -148,13 +157,20 @@ impl<F: FieldExt> Circuit<F> for TestBranchCircuit<F> {
             Some(v) => Some(F::one() - v),
             None => None,
         };
-        let c = evaluation_chip.add(
+        let c = evaluation_chip.binary_op(
             layouter.namespace(|| "a + b"),
+            Opcode::Add,
             a.clone(),
             b.clone(),
             self.cond,
         )?;
-        let d = evaluation_chip.mul(layouter.namespace(|| "a * b"), a, b, not_cond)?;
+        let d = evaluation_chip.binary_op(
+            layouter.namespace(|| "a * b"),
+            Opcode::Mul,
+            a,
+            b,
+            not_cond,
+        )?;
 
         let out = evaluation_chip.conditional_select(
             layouter.namespace(|| "conditional select"),
