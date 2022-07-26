@@ -224,6 +224,9 @@ impl<F: FieldExt> Block<F> {
                             .map_err(|e| RuntimeError::from(e))?;
                         interp.stack.push(b)
                     }
+                    Bytecode::Lt => {
+                        binary_op!(Opcode::Lt)
+                    }
                     _ => unreachable!(),
                 }?;
 

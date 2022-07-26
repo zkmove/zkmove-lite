@@ -51,7 +51,7 @@ impl<'l> MoveCircuit<'l> {
 }
 
 impl<'l, F: FieldExt> Circuit<F> for MoveCircuit<'l> {
-    type Config = EvaluationConfig;
+    type Config = EvaluationConfig<F>;
     type FloorPlanner = SimpleFloorPlanner;
 
     fn without_witnesses(&self) -> Self {
