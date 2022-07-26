@@ -4,6 +4,7 @@
 use crate::chips::arithmetic::{ArithmeticChip, ArithmeticConfig};
 use crate::chips::conditional_select::{ConditionalSelectChip, ConditionalSelectConfig};
 use crate::chips::logical::{LogicalChip, LogicalConfig};
+use crate::chips::utilities::NUM_OF_ADVICE_COLUMNS;
 use crate::instructions::Opcode;
 use crate::value::Value;
 use halo2_proofs::{
@@ -15,17 +16,17 @@ use movelang::value::MoveValueType;
 use std::marker::PhantomData;
 
 #[derive(Clone, Debug)]
-pub struct EvaluationConfig {
-    advice: [Column<Advice>; 4],
+pub struct EvaluationConfig<F: FieldExt> {
+    advice: [Column<Advice>; NUM_OF_ADVICE_COLUMNS],
     instance: Column<Instance>, // Public inputs
     constant: Column<Fixed>,    // Fixed column to load constants
     arithmetic_config: ArithmeticConfig,
-    logical_config: LogicalConfig,
+    logical_config: LogicalConfig<F>,
     conditional_select_config: ConditionalSelectConfig,
 }
 
 pub struct EvaluationChip<F: FieldExt> {
-    config: EvaluationConfig,
+    config: EvaluationConfig<F>,
     arithmetic_chip: ArithmeticChip<F>,
     logical_chip: LogicalChip<F>,
     conditional_select_chip: ConditionalSelectChip<F>,
@@ -33,7 +34,7 @@ pub struct EvaluationChip<F: FieldExt> {
 }
 
 impl<F: FieldExt> Chip<F> for EvaluationChip<F> {
-    type Config = EvaluationConfig;
+    type Config = EvaluationConfig<F>;
     type Loaded = ();
 
     fn config(&self) -> &Self::Config {
@@ -71,7 +72,7 @@ impl<F: FieldExt> EvaluationChip<F> {
 
     pub fn configure(
         meta: &mut ConstraintSystem<F>,
-        advice: [Column<Advice>; 4],
+        advice: [Column<Advice>; NUM_OF_ADVICE_COLUMNS],
         instance: Column<Instance>,
         constant: Column<Fixed>,
     ) -> <Self as Chip<F>>::Config {
@@ -122,6 +123,7 @@ impl<F: FieldExt> EvaluationChip<F> {
             Opcode::Neq => self.logical_chip.neq(layouter, a, b, cond),
             Opcode::And => self.logical_chip.and(layouter, a, b, cond),
             Opcode::Or => self.logical_chip.or(layouter, a, b, cond),
+            Opcode::Lt => self.logical_chip.lt(layouter, a, b, cond),
             _ => unreachable!(),
         }
     }

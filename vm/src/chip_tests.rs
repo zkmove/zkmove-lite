@@ -19,7 +19,7 @@ struct TestCircuit<F: FieldExt> {
 }
 
 impl<F: FieldExt> Circuit<F> for TestCircuit<F> {
-    type Config = EvaluationConfig;
+    type Config = EvaluationConfig<F>;
     type FloorPlanner = SimpleFloorPlanner;
 
     fn without_witnesses(&self) -> Self {
@@ -110,7 +110,7 @@ struct TestBranchCircuit<F: FieldExt> {
 }
 
 impl<F: FieldExt> Circuit<F> for TestBranchCircuit<F> {
-    type Config = EvaluationConfig;
+    type Config = EvaluationConfig<F>;
     type FloorPlanner = SimpleFloorPlanner;
 
     fn without_witnesses(&self) -> Self {
@@ -198,7 +198,7 @@ mod tests {
     #[test]
     fn test_evaluation() {
         // Circuit is very small, we pick a small value here
-        let k = 4;
+        let k = 5;
 
         // Prepare the private and public inputs to the circuit
         let a = Fp::from(2);
@@ -233,7 +233,7 @@ mod tests {
     #[test]
     fn test_branch() {
         // Circuit is very small, we pick a small value here
-        let k = 4;
+        let k = 5;
         let params: Params<EqAffine> = Params::new(k);
 
         let empty_circuit = TestBranchCircuit {

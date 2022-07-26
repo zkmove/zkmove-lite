@@ -1,6 +1,7 @@
 // Copyright (c) zkMove Authors
 // SPDX-License-Identifier: Apache-2.0
 
+use crate::chips::utilities::NUM_OF_ADVICE_COLUMNS;
 use crate::value::Value;
 use halo2_proofs::{
     arithmetic::FieldExt,
@@ -14,7 +15,7 @@ use std::marker::PhantomData;
 
 #[derive(Clone, Debug)]
 pub struct ArithmeticConfig {
-    advice: [Column<Advice>; 4],
+    advice: [Column<Advice>; NUM_OF_ADVICE_COLUMNS],
     s_add: Selector,
     s_sub: Selector,
     s_mul: Selector,
@@ -52,7 +53,7 @@ impl<F: FieldExt> ArithmeticChip<F> {
 
     pub fn configure(
         meta: &mut ConstraintSystem<F>,
-        advice: [Column<Advice>; 4],
+        advice: [Column<Advice>; NUM_OF_ADVICE_COLUMNS],
     ) -> <Self as Chip<F>>::Config {
         for column in &advice {
             meta.enable_equality(*column);
