@@ -1,7 +1,7 @@
 // Copyright (c) zkMove Authors
 // SPDX-License-Identifier: Apache-2.0
 
-use crate::evaluation_chip::EvaluationChip;
+use crate::chips::evaluation_chip::EvaluationChip;
 use crate::interpreter::Interpreter;
 use crate::locals::Locals;
 use crate::program_block::{Block, ExitStatus, ProgramBlock};

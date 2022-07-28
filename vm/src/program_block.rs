@@ -1,8 +1,8 @@
 // Copyright (c) zkMove Authors
 // SPDX-License-Identifier: Apache-2.0
 
-use crate::evaluation_chip::EvaluationChip;
-use crate::instructions::Opcode;
+use crate::chips::evaluation_chip::EvaluationChip;
+use crate::chips::instructions::Opcode;
 use crate::interpreter::Interpreter;
 use crate::locals::Locals;
 use error::{RuntimeError, StatusCode, VmResult};

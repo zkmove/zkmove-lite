@@ -3,27 +3,30 @@
 
 use crate::chips::evaluation_chip::NUM_OF_ADVICE_COLUMNS;
 use crate::value::Value;
+use crate::{assign_cond, assign_operands};
 use halo2_proofs::{
     arithmetic::FieldExt,
     circuit::{Chip, Layouter, Region},
     plonk::{Advice, Column, ConstraintSystem, Error, Selector},
     poly::Rotation,
 };
+use movelang::value::MoveValueType;
 use std::marker::PhantomData;
 
 #[derive(Clone, Debug)]
-pub struct ConditionalSelectConfig {
+pub struct AndConfig<F: FieldExt> {
+    s_and: Selector,
     advices: [Column<Advice>; NUM_OF_ADVICE_COLUMNS],
-    s_cs: Selector,
-}
-
-pub struct ConditionalSelectChip<F: FieldExt> {
-    config: ConditionalSelectConfig,
     _marker: PhantomData<F>,
 }
 
-impl<F: FieldExt> Chip<F> for ConditionalSelectChip<F> {
-    type Config = ConditionalSelectConfig;
+pub struct AndChip<F: FieldExt> {
+    config: AndConfig<F>,
+    _marker: PhantomData<F>,
+}
+
+impl<F: FieldExt> Chip<F> for AndChip<F> {
+    type Config = AndConfig<F>;
     type Loaded = ();
 
     fn config(&self) -> &Self::Config {
@@ -35,8 +38,8 @@ impl<F: FieldExt> Chip<F> for ConditionalSelectChip<F> {
     }
 }
 
-impl<F: FieldExt> ConditionalSelectChip<F> {
-    pub fn construct(
+impl<F: FieldExt> AndChip<F> {
+    pub(crate) fn construct(
         config: <Self as Chip<F>>::Config,
         _loaded: <Self as Chip<F>>::Loaded,
     ) -> Self {
@@ -46,32 +49,29 @@ impl<F: FieldExt> ConditionalSelectChip<F> {
         }
     }
 
-    pub fn configure(
+    pub(crate) fn configure(
         meta: &mut ConstraintSystem<F>,
         advices: [Column<Advice>; NUM_OF_ADVICE_COLUMNS],
     ) -> <Self as Chip<F>>::Config {
-        for column in &advices {
-            meta.enable_equality(*column);
-        }
-        let s_cs = meta.selector();
-
-        meta.create_gate("conditional_select", |meta| {
+        let s_and = meta.selector();
+        meta.create_gate("and", |meta| {
             let lhs = meta.query_advice(advices[0], Rotation::cur());
             let rhs = meta.query_advice(advices[1], Rotation::cur());
             let out = meta.query_advice(advices[2], Rotation::cur());
             let cond = meta.query_advice(advices[3], Rotation::cur());
-            let s_cs = meta.query_selector(s_cs);
+            let s_and = meta.query_selector(s_and) * cond;
 
-            vec![
-                // lhs * cond + rhs * (1 - cond) = out
-                s_cs * ((lhs - rhs.clone()) * cond + rhs - out),
-            ]
+            vec![s_and * (lhs * rhs - out)]
         });
 
-        ConditionalSelectConfig { advices, s_cs }
+        AndConfig {
+            s_and,
+            advices,
+            _marker: PhantomData,
+        }
     }
 
-    pub fn conditional_select(
+    pub(crate) fn assign(
         &self,
         mut layouter: impl Layouter<F>,
         a: Value<F>,
@@ -82,49 +82,34 @@ impl<F: FieldExt> ConditionalSelectChip<F> {
 
         let mut c = None;
         layouter.assign_region(
-            || "conditional_select",
+            || "and",
             |mut region: Region<'_, F>| {
-                config.s_cs.enable(&mut region, 0)?;
+                config.s_and.enable(&mut region, 0)?;
 
-                let lhs = region.assign_advice(
-                    || "lhs",
-                    config.advices[0],
-                    0,
-                    || a.value().ok_or(Error::Synthesis),
-                )?;
-                let rhs = region.assign_advice(
-                    || "rhs",
-                    config.advices[1],
-                    0,
-                    || b.value().ok_or(Error::Synthesis),
-                )?;
-                region.constrain_equal(a.cell().unwrap(), lhs.cell())?;
-                region.constrain_equal(b.cell().unwrap(), rhs.cell())?;
+                assign_operands!(a, b, region, config);
+                assign_cond!(cond, region, config);
 
-                let value = match (a.value(), b.value(), cond) {
-                    (Some(a), Some(b), Some(cond)) => {
-                        let v = if cond == F::one() { a } else { b };
+                let value = match (a.value(), b.value()) {
+                    (Some(a), Some(b)) => {
+                        let v = if a == F::zero() || b == F::zero() {
+                            F::zero()
+                        } else {
+                            F::one()
+                        };
                         Some(v)
                     }
                     _ => None,
                 };
 
                 let cell = region.assign_advice(
-                    || "select result",
+                    || "lhs && rhs",
                     config.advices[2],
                     0,
                     || value.ok_or(Error::Synthesis),
                 )?;
 
-                region.assign_advice(
-                    || "cond",
-                    config.advices[3],
-                    0,
-                    || cond.ok_or(Error::Synthesis),
-                )?;
-
                 c = Some(
-                    Value::new_variable(value, Some(cell.cell()), a.ty())
+                    Value::new_variable(value, Some(cell.cell()), MoveValueType::Bool)
                         .map_err(|_| Error::Synthesis)?,
                 );
                 Ok(())

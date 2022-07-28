@@ -1,6 +1,7 @@
 // Copyright (c) zkMove Authors
 // SPDX-License-Identifier: Apache-2.0
 
+use crate::chips::evaluation_chip::NUM_OF_ADVICE_COLUMNS;
 use crate::value::Value;
 use halo2_proofs::{
     arithmetic::FieldExt,
@@ -12,7 +13,6 @@ use logger::prelude::*;
 use std::convert::TryInto;
 use std::marker::PhantomData;
 
-pub const NUM_OF_ADVICE_COLUMNS: usize = 4;
 pub const NUM_OF_BYTES_U128: usize = 16;
 
 #[derive(Clone, Debug)]
