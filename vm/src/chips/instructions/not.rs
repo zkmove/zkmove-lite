@@ -2,11 +2,12 @@
 // SPDX-License-Identifier: Apache-2.0
 
 use crate::chips::evaluation_chip::NUM_OF_ADVICE_COLUMNS;
+use crate::chips::utilities::Expr;
 use crate::value::Value;
 use halo2_proofs::{
     arithmetic::FieldExt,
     circuit::{Chip, Layouter, Region},
-    plonk::{Advice, Column, ConstraintSystem, Error, Expression, Selector},
+    plonk::{Advice, Column, ConstraintSystem, Error, Selector},
     poly::Rotation,
 };
 use movelang::value::MoveValueType;
@@ -58,11 +59,12 @@ impl<F: FieldExt> NotChip<F> {
             let out = meta.query_advice(advices[1], Rotation::cur());
             let cond = meta.query_advice(advices[2], Rotation::cur());
             let s_not = meta.query_selector(s_not) * cond;
-            let one = Expression::Constant(F::one());
 
             vec![
+                // out is 0 or 1
+                s_not.clone() * (out.clone() * (1.expr() - out.clone())),
                 // 1 - x = out
-                s_not * (one - x - out),
+                s_not * (1.expr() - x - out),
             ]
         });
 
@@ -75,7 +77,7 @@ impl<F: FieldExt> NotChip<F> {
 
     pub(crate) fn assign(
         &self,
-        mut layouter: impl Layouter<F>,
+        layouter: &mut impl Layouter<F>,
         a: Value<F>,
         cond: Option<F>,
     ) -> Result<Value<F>, Error> {

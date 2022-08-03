@@ -72,7 +72,7 @@ impl<F: FieldExt> SubChip<F> {
 
     pub(crate) fn assign(
         &self,
-        mut layouter: impl Layouter<F>,
+        layouter: &mut impl Layouter<F>,
         a: Value<F>,
         b: Value<F>,
         cond: Option<F>,
