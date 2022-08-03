@@ -2,12 +2,13 @@
 // SPDX-License-Identifier: Apache-2.0
 
 use crate::chips::evaluation_chip::NUM_OF_ADVICE_COLUMNS;
+use crate::chips::utilities::Expr;
 use crate::value::Value;
 use crate::{assign_cond, assign_delta_invert, assign_operands};
 use halo2_proofs::{
     arithmetic::FieldExt,
     circuit::{Chip, Layouter, Region},
-    plonk::{Advice, Column, ConstraintSystem, Error, Expression, Selector},
+    plonk::{Advice, Column, ConstraintSystem, Error, Selector},
     poly::Rotation,
 };
 use movelang::value::MoveValueType;
@@ -61,15 +62,16 @@ impl<F: FieldExt> EqChip<F> {
             let cond = meta.query_advice(advices[3], Rotation::cur());
             let delta_invert = meta.query_advice(advices[0], Rotation::next());
             let s_eq = meta.query_selector(s_eq) * cond;
-            let one = Expression::Constant(F::one());
 
             vec![
+                // out is 0 or 1
+                s_eq.clone() * (out.clone() * (1.expr() - out.clone())),
                 // if a != b then (a - b) * inverse(a - b) == 1 - out
                 // if a == b then (a - b) * 1 == 1 - out
                 s_eq.clone()
-                    * ((lhs.clone() - rhs.clone()) * delta_invert.clone() + (out - one.clone())),
+                    * ((lhs.clone() - rhs.clone()) * delta_invert.clone() + (out - 1.expr())),
                 // constrain delta_invert: (a - b) * inverse(a - b) must be 1 or 0
-                s_eq * (lhs.clone() - rhs.clone()) * ((lhs - rhs) * delta_invert - one),
+                s_eq * (lhs.clone() - rhs.clone()) * ((lhs - rhs) * delta_invert - 1.expr()),
             ]
         });
 
@@ -82,7 +84,7 @@ impl<F: FieldExt> EqChip<F> {
 
     pub(crate) fn assign(
         &self,
-        mut layouter: impl Layouter<F>,
+        layouter: &mut impl Layouter<F>,
         a: Value<F>,
         b: Value<F>,
         cond: Option<F>,

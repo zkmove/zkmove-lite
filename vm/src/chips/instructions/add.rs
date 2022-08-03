@@ -21,7 +21,6 @@ pub struct AddConfig<F: FieldExt> {
 
 pub struct AddChip<F: FieldExt> {
     config: AddConfig<F>,
-    _marker: PhantomData<F>,
 }
 
 impl<F: FieldExt> Chip<F> for AddChip<F> {
@@ -42,10 +41,7 @@ impl<F: FieldExt> AddChip<F> {
         config: <Self as Chip<F>>::Config,
         _loaded: <Self as Chip<F>>::Loaded,
     ) -> Self {
-        Self {
-            config,
-            _marker: PhantomData,
-        }
+        Self { config }
     }
 
     pub(crate) fn configure(
@@ -72,7 +68,7 @@ impl<F: FieldExt> AddChip<F> {
 
     pub(crate) fn assign(
         &self,
-        mut layouter: impl Layouter<F>,
+        layouter: &mut impl Layouter<F>,
         a: Value<F>,
         b: Value<F>,
         cond: Option<F>,

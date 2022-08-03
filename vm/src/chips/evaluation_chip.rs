@@ -14,6 +14,9 @@ use crate::chips::instructions::not::{NotChip, NotConfig};
 use crate::chips::instructions::or::{OrChip, OrConfig};
 use crate::chips::instructions::sub::{SubChip, SubConfig};
 use crate::chips::instructions::Opcode;
+use crate::chips::utilities::{
+    RangeCheckChip, RangeCheckConfig, NUM_OF_BYTES_U128, NUM_OF_BYTES_U64, NUM_OF_BYTES_U8,
+};
 use crate::value::Value;
 use halo2_proofs::{
     arithmetic::FieldExt,
@@ -21,7 +24,6 @@ use halo2_proofs::{
     plonk::{Advice, Column, ConstraintSystem, Error, Fixed, Instance},
 };
 use movelang::value::MoveValueType;
-use std::marker::PhantomData;
 
 pub const NUM_OF_ADVICE_COLUMNS: usize = 4;
 
@@ -42,12 +44,14 @@ pub struct EvaluationConfig<F: FieldExt> {
     not_config: NotConfig<F>,
     lt_config: LtConfig<F>,
     conditional_select_config: ConditionalSelectConfig,
+    range_check_u8: RangeCheckConfig<F, NUM_OF_BYTES_U8>,
+    range_check_u64: RangeCheckConfig<F, NUM_OF_BYTES_U64>,
+    range_check_u128: RangeCheckConfig<F, NUM_OF_BYTES_U128>,
 }
 
 pub struct EvaluationChip<F: FieldExt> {
     config: EvaluationConfig<F>,
     conditional_select_chip: ConditionalSelectChip<F>,
-    _marker: PhantomData<F>,
 }
 
 impl<F: FieldExt> Chip<F> for EvaluationChip<F> {
@@ -75,7 +79,6 @@ impl<F: FieldExt> EvaluationChip<F> {
         Self {
             config,
             conditional_select_chip,
-            _marker: PhantomData,
         }
     }
 
@@ -97,6 +100,9 @@ impl<F: FieldExt> EvaluationChip<F> {
         let not_config = NotChip::configure(meta, advices);
         let lt_config = LtChip::configure(meta, advices);
         let conditional_select_config = ConditionalSelectChip::configure(meta, advices);
+        let range_check_u8 = RangeCheckChip::configure(meta, advices);
+        let range_check_u64 = RangeCheckChip::configure(meta, advices);
+        let range_check_u128 = RangeCheckChip::configure(meta, advices);
 
         for column in &advices {
             meta.enable_equality(*column);
@@ -120,6 +126,9 @@ impl<F: FieldExt> EvaluationChip<F> {
             not_config,
             lt_config,
             conditional_select_config,
+            range_check_u8,
+            range_check_u64,
+            range_check_u128,
             //other config
         }
     }
@@ -135,62 +144,88 @@ impl<F: FieldExt> EvaluationChip<F> {
             .conditional_select(layouter, a, b, cond)
     }
 
+    fn range_check(
+        &self,
+        layouter: &mut impl Layouter<F>,
+        value: Value<F>,
+        cond: Option<F>,
+    ) -> Result<(), Error> {
+        match value.ty() {
+            MoveValueType::U8 => {
+                RangeCheckChip::construct(self.config.range_check_u8.clone())
+                    .assign(layouter, value, cond)?;
+            }
+            MoveValueType::U64 => {
+                RangeCheckChip::construct(self.config.range_check_u64.clone())
+                    .assign(layouter, value, cond)?;
+            }
+            MoveValueType::U128 => {
+                RangeCheckChip::construct(self.config.range_check_u128.clone())
+                    .assign(layouter, value, cond)?;
+            }
+            _ => {}
+        }
+        Ok(())
+    }
+
     pub fn binary_op(
         &self,
-        layouter: impl Layouter<F>,
+        mut layouter: impl Layouter<F>,
         opcode: Opcode,
         a: Value<F>,
         b: Value<F>,
         cond: Option<F>,
     ) -> Result<Value<F>, Error> {
-        match opcode {
+        let out = match opcode {
             Opcode::Add => {
                 let add_chip = AddChip::<F>::construct(self.config.add_config.clone(), ());
-                add_chip.assign(layouter, a, b, cond)
+                add_chip.assign(&mut layouter, a, b, cond.clone())?
             }
             Opcode::Sub => {
                 let sub_chip = SubChip::<F>::construct(self.config.sub_config.clone(), ());
-                sub_chip.assign(layouter, a, b, cond)
+                sub_chip.assign(&mut layouter, a, b, cond.clone())?
             }
             Opcode::Mul => {
                 let mul_chip = MulChip::<F>::construct(self.config.mul_config.clone(), ());
-                mul_chip.assign(layouter, a, b, cond)
+                mul_chip.assign(&mut layouter, a, b, cond.clone())?
             }
             Opcode::Div => {
                 let div_chip = DivChip::<F>::construct(self.config.div_config.clone(), ());
-                div_chip.assign(layouter, a, b, cond)
+                div_chip.assign(&mut layouter, a, b, cond.clone())?
             }
             Opcode::Mod => {
                 let mod_chip = ModChip::<F>::construct(self.config.mod_config.clone(), ());
-                mod_chip.assign(layouter, a, b, cond)
+                mod_chip.assign(&mut layouter, a, b, cond.clone())?
             }
             Opcode::Eq => {
                 let eq_chip = EqChip::<F>::construct(self.config.eq_config.clone(), ());
-                eq_chip.assign(layouter, a, b, cond)
+                eq_chip.assign(&mut layouter, a, b, cond.clone())?
             }
             Opcode::Neq => {
                 let neq_chip = NeqChip::<F>::construct(self.config.neq_config.clone(), ());
-                neq_chip.assign(layouter, a, b, cond)
+                neq_chip.assign(&mut layouter, a, b, cond.clone())?
             }
             Opcode::And => {
                 let and_chip = AndChip::<F>::construct(self.config.and_config.clone(), ());
-                and_chip.assign(layouter, a, b, cond)
+                and_chip.assign(&mut layouter, a, b, cond.clone())?
             }
             Opcode::Or => {
                 let or_chip = OrChip::<F>::construct(self.config.or_config.clone(), ());
-                or_chip.assign(layouter, a, b, cond)
+                or_chip.assign(&mut layouter, a, b, cond.clone())?
             }
             Opcode::Lt => {
                 let lt_chip = LtChip::<F>::construct(self.config.lt_config.clone(), ());
-                lt_chip.assign(layouter, a, b, cond)
+                lt_chip.assign(&mut layouter, a, b, cond.clone())?
             }
             _ => unreachable!(),
-        }
+        };
+        self.range_check(&mut layouter, out.clone(), cond)?;
+        Ok(out)
     }
 
     pub fn unary_op(
         &self,
-        layouter: impl Layouter<F>,
+        mut layouter: impl Layouter<F>,
         opcode: Opcode,
         a: Value<F>,
         cond: Option<F>,
@@ -198,7 +233,7 @@ impl<F: FieldExt> EvaluationChip<F> {
         match opcode {
             Opcode::Not => {
                 let not_chip = NotChip::<F>::construct(self.config.not_config.clone(), ());
-                not_chip.assign(layouter, a, cond)
+                not_chip.assign(&mut layouter, a, cond)
             }
             _ => unreachable!(),
         }

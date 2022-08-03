@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 use crate::chips::evaluation_chip::NUM_OF_ADVICE_COLUMNS;
+use crate::chips::utilities::Expr;
 use crate::value::Value;
 use crate::{assign_cond, assign_operands};
 use halo2_proofs::{
@@ -61,7 +62,11 @@ impl<F: FieldExt> AndChip<F> {
             let cond = meta.query_advice(advices[3], Rotation::cur());
             let s_and = meta.query_selector(s_and) * cond;
 
-            vec![s_and * (lhs * rhs - out)]
+            vec![
+                // out is 0 or 1
+                s_and.clone() * (out.clone() * (1.expr() - out.clone())),
+                s_and * (lhs * rhs - out),
+            ]
         });
 
         AndConfig {
@@ -73,7 +78,7 @@ impl<F: FieldExt> AndChip<F> {
 
     pub(crate) fn assign(
         &self,
-        mut layouter: impl Layouter<F>,
+        layouter: &mut impl Layouter<F>,
         a: Value<F>,
         b: Value<F>,
         cond: Option<F>,

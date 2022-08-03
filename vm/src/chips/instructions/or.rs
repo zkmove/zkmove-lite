@@ -2,12 +2,13 @@
 // SPDX-License-Identifier: Apache-2.0
 
 use crate::chips::evaluation_chip::NUM_OF_ADVICE_COLUMNS;
+use crate::chips::utilities::Expr;
 use crate::value::Value;
 use crate::{assign_cond, assign_operands};
 use halo2_proofs::{
     arithmetic::FieldExt,
     circuit::{Chip, Layouter, Region},
-    plonk::{Advice, Column, ConstraintSystem, Error, Expression, Selector},
+    plonk::{Advice, Column, ConstraintSystem, Error, Selector},
     poly::Rotation,
 };
 use movelang::value::MoveValueType;
@@ -60,9 +61,12 @@ impl<F: FieldExt> OrChip<F> {
             let out = meta.query_advice(advices[2], Rotation::cur());
             let cond = meta.query_advice(advices[3], Rotation::cur());
             let s_or = meta.query_selector(s_or) * cond;
-            let one = Expression::Constant(F::one());
 
-            vec![s_or * ((one.clone() - lhs) * (one.clone() - rhs) - (one - out))]
+            vec![
+                // out is 0 or 1
+                s_or.clone() * (out.clone() * (1.expr() - out.clone())),
+                s_or * ((1.expr() - lhs) * (1.expr() - rhs) - (1.expr() - out)),
+            ]
         });
 
         OrConfig {
@@ -74,7 +78,7 @@ impl<F: FieldExt> OrChip<F> {
 
     pub(crate) fn assign(
         &self,
-        mut layouter: impl Layouter<F>,
+        layouter: &mut impl Layouter<F>,
         a: Value<F>,
         b: Value<F>,
         cond: Option<F>,
