@@ -69,6 +69,15 @@ else
   fi
 fi
 
+# Debian systems need the following additional packages
+if [[ "$OSTYPE" == "linux-gnu" ]]; then
+  echo "Installing Plotters dependency......"
+  if [[ "$PACKAGE_MANAGER" == "apt-get" ]]; then
+    sudo apt-get update
+    sudo apt-get install libexpat1-dev libfreetype6-dev libfontconfig libfontconfig1-dev -y
+  fi
+fi
+
 cat <<EOF
 Finished installing all dependencies.
 You should now be able to build the project by running:
