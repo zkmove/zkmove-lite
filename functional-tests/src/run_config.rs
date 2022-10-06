@@ -1,6 +1,8 @@
 // Copyright (c) zkMove Authors
 // SPDX-License-Identifier: Apache-2.0
 
+#![allow(clippy::useless_conversion)]
+
 use anyhow::Result;
 use movelang::argument::ScriptArguments;
 use std::fs::File;

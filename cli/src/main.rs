@@ -1,6 +1,8 @@
 // Copyright (c) zkMove Authors
 // SPDX-License-Identifier: Apache-2.0
 
+#![allow(clippy::ptr_arg)]
+
 use error::VmResult;
 use functional_tests::run_config::RunConfig;
 use halo2_proofs::pasta::{EqAffine, Fp};
