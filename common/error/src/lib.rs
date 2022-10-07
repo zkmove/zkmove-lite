@@ -1,6 +1,8 @@
 // Copyright (c) zkMove Authors
 // SPDX-License-Identifier: Apache-2.0
 
+#![allow(clippy::from_over_into)]
+
 use halo2_proofs::plonk::{Error as ProofSystemError, Error};
 use logger::prelude::*;
 use std::result::Result;
