@@ -1,6 +1,8 @@
 // Copyright (c) zkMove Authors
 // SPDX-License-Identifier: Apache-2.0
 
+#![allow(clippy::redundant_clone)]
+
 use anyhow::Result;
 use halo2_proofs::pasta::{EqAffine, Fp};
 use halo2_proofs::poly::commitment::Params;
@@ -32,7 +34,7 @@ fn parse_config(script_file: &Path) -> Result<RunConfig> {
     let mut buffer = String::new();
     f.read_to_string(&mut buffer)?;
 
-    for line in buffer.lines().into_iter() {
+    for line in buffer.lines() {
         let s = line.split_whitespace().collect::<String>();
         if let Some(s) = s.strip_prefix("//!args:") {
             config.args = Some(s.parse::<ScriptArguments>()?);
