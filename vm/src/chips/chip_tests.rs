@@ -159,10 +159,7 @@ impl<F: FieldExt> Circuit<F> for TestBranchCircuit<F> {
             self.b,
             self.b_type.clone(),
         )?;
-        let not_cond = match self.cond {
-            Some(v) => Some(F::one() - v),
-            None => None,
-        };
+        let not_cond = self.cond.map(|v| F::one() - v);
         let c = evaluation_chip.binary_op(
             layouter.namespace(|| "a + b"),
             Opcode::Add,
@@ -280,21 +277,21 @@ impl<F: FieldExt> Circuit<F> for RangeCheckTestCircuit<F> {
                 RangeCheckChip::construct(config.range_check_u8).assign(
                     &mut layouter,
                     value.unwrap(),
-                    Some(self.cond.clone()),
+                    Some(self.cond),
                 )?;
             }
             MoveValueType::U64 => {
                 RangeCheckChip::construct(config.range_check_u64).assign(
                     &mut layouter,
                     value.unwrap(),
-                    Some(self.cond.clone()),
+                    Some(self.cond),
                 )?;
             }
             MoveValueType::U128 => {
                 RangeCheckChip::construct(config.range_check_u128).assign(
                     &mut layouter,
                     value.unwrap(),
-                    Some(self.cond.clone()),
+                    Some(self.cond),
                 )?;
             }
             _ => unimplemented!(),

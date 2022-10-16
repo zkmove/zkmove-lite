@@ -29,6 +29,12 @@ pub struct Runtime<F: FieldExt> {
     _marker: PhantomData<F>,
 }
 
+impl<F: FieldExt> Default for Runtime<F> {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl<F: FieldExt> Runtime<F> {
     pub fn new() -> Self {
         Runtime {

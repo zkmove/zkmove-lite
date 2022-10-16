@@ -49,12 +49,13 @@ impl<F: FieldExt> Locals<F> {
         self.0.borrow().len()
     }
 
+    pub fn is_empty(&self) -> bool {
+        self.len() == 0
+    }
+
     pub fn get(&self, index: usize) -> Option<Value<F>> {
         let values = self.0.borrow();
-        match values.get(index) {
-            Some(v) => Some(v.clone()),
-            None => None,
-        }
+        values.get(index).cloned()
     }
 }
 
