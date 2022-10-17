@@ -405,7 +405,7 @@ impl<F: FieldExt> ProgramBlock<F> {
                             t.clone(),
                             f.clone(),
                             condition,
-                            )
+                        )
                         .map_err(|e| {
                             error!("merge locals failed: {:?}", e);
                             RuntimeError::from(e)

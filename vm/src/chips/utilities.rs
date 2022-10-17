@@ -202,10 +202,10 @@ impl<F: FieldExt, const NUM_OF_BYTES: usize> RangeCheckChip<F, NUM_OF_BYTES> {
             |mut region: Region<'_, F>| {
                 self.config.s_range.enable(&mut region, 0)?;
                 self.config.cond_cell.assign(&mut region, 0, cond)?;
-                let value =
-                    self.config
-                        .value_cell
-                        .assign(&mut region, 0, input_value.value())?;
+                let value = self
+                    .config
+                    .value_cell
+                    .assign(&mut region, 0, input_value.value())?;
                 region
                     .constrain_equal(input_value.cell().ok_or(Error::Synthesis)?, value.cell())?;
                 self.config
