@@ -42,7 +42,7 @@ impl<'l> MoveCircuit<'l> {
     }
 
     pub fn loader(&self) -> &'l MoveLoader {
-        &self.loader
+        self.loader
     }
 
     pub fn state(&self) -> &StateStore {

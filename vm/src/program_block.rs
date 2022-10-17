@@ -221,7 +221,7 @@ impl<F: FieldExt> Block<F> {
                                 a,
                                 self.condition(),
                             )
-                            .map_err(|e| RuntimeError::from(e))?;
+                            .map_err(RuntimeError::from)?;
                         interp.stack.push(b)
                     }
                     Bytecode::Lt => {
@@ -397,24 +397,21 @@ impl<F: FieldExt> ProgramBlock<F> {
     ) -> VmResult<()> {
         debug_assert!(t_locals.len() == f_locals.len());
         for i in 0..t_locals.len() {
-            match (t_locals.get(i), f_locals.get(i)) {
-                (Some(t), Some(f)) => {
-                    if !t.equals(&f) {
-                        let local = evaluation_chip
-                            .conditional_select(
-                                layouter.namespace(|| format!("merge_locals {}", i)),
-                                t.clone(),
-                                f.clone(),
-                                condition,
-                            )
-                            .map_err(|e| {
-                                error!("merge locals failed: {:?}", e);
-                                RuntimeError::from(e)
-                            })?;
-                        self.locals().store(i, local)?;
-                    }
+            if let (Some(t), Some(f)) = (t_locals.get(i), f_locals.get(i)) {
+                if !t.equals(&f) {
+                    let local = evaluation_chip
+                        .conditional_select(
+                            layouter.namespace(|| format!("merge_locals {}", i)),
+                            t.clone(),
+                            f.clone(),
+                            condition,
+                        )
+                        .map_err(|e| {
+                            error!("merge locals failed: {:?}", e);
+                            RuntimeError::from(e)
+                        })?;
+                    self.locals().store(i, local)?;
                 }
-                _ => {}
             }
         }
         Ok(())

@@ -179,43 +179,43 @@ impl<F: FieldExt> EvaluationChip<F> {
         let out = match opcode {
             Opcode::Add => {
                 let add_chip = AddChip::<F>::construct(self.config.add_config.clone(), ());
-                add_chip.assign(&mut layouter, a, b, cond.clone())?
+                add_chip.assign(&mut layouter, a, b, cond)?
             }
             Opcode::Sub => {
                 let sub_chip = SubChip::<F>::construct(self.config.sub_config.clone(), ());
-                sub_chip.assign(&mut layouter, a, b, cond.clone())?
+                sub_chip.assign(&mut layouter, a, b, cond)?
             }
             Opcode::Mul => {
                 let mul_chip = MulChip::<F>::construct(self.config.mul_config.clone(), ());
-                mul_chip.assign(&mut layouter, a, b, cond.clone())?
+                mul_chip.assign(&mut layouter, a, b, cond)?
             }
             Opcode::Div => {
                 let div_chip = DivChip::<F>::construct(self.config.div_config.clone(), ());
-                div_chip.assign(&mut layouter, a, b, cond.clone())?
+                div_chip.assign(&mut layouter, a, b, cond)?
             }
             Opcode::Mod => {
                 let mod_chip = ModChip::<F>::construct(self.config.mod_config.clone(), ());
-                mod_chip.assign(&mut layouter, a, b, cond.clone())?
+                mod_chip.assign(&mut layouter, a, b, cond)?
             }
             Opcode::Eq => {
                 let eq_chip = EqChip::<F>::construct(self.config.eq_config.clone(), ());
-                eq_chip.assign(&mut layouter, a, b, cond.clone())?
+                eq_chip.assign(&mut layouter, a, b, cond)?
             }
             Opcode::Neq => {
                 let neq_chip = NeqChip::<F>::construct(self.config.neq_config.clone(), ());
-                neq_chip.assign(&mut layouter, a, b, cond.clone())?
+                neq_chip.assign(&mut layouter, a, b, cond)?
             }
             Opcode::And => {
                 let and_chip = AndChip::<F>::construct(self.config.and_config.clone(), ());
-                and_chip.assign(&mut layouter, a, b, cond.clone())?
+                and_chip.assign(&mut layouter, a, b, cond)?
             }
             Opcode::Or => {
                 let or_chip = OrChip::<F>::construct(self.config.or_config.clone(), ());
-                or_chip.assign(&mut layouter, a, b, cond.clone())?
+                or_chip.assign(&mut layouter, a, b, cond)?
             }
             Opcode::Lt => {
                 let lt_chip = LtChip::<F>::construct(self.config.lt_config.clone(), ());
-                lt_chip.assign(&mut layouter, a, b, cond.clone())?
+                lt_chip.assign(&mut layouter, a, b, cond)?
             }
             _ => unreachable!(),
         };

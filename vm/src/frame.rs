@@ -52,10 +52,7 @@ impl<F: FieldExt> Frame<F> {
         condition: Option<F>,
     ) -> VmResult<ProgramBlock<F>> {
         let code = self.function.code();
-        let not_condition = match condition {
-            Some(v) => Some(F::one() - v),
-            None => None,
-        };
+        let not_condition = condition.map(|v| F::one() - v);
         let (_br_type, true_branch_start) = match &code[pc as usize] {
             Bytecode::BrTrue(offset) => (true, *offset),
             _ => {
@@ -168,8 +165,8 @@ impl<F: FieldExt> Frame<F> {
                                         layouter.namespace(|| {
                                             format!("merge locals in step#{}", interp.step)
                                         }),
-                                        &t_branch.block.locals(),
-                                        &f_branch.block.locals(),
+                                        t_branch.block.locals(),
+                                        f_branch.block.locals(),
                                         t_branch.block.condition(),
                                     )?;
                                     self.current_block = next_running;
