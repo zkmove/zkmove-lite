@@ -1,8 +1,6 @@
 // Copyright (c) zkMove Authors
 // SPDX-License-Identifier: Apache-2.0
 
-#![allow(clippy::from_over_into)]
-
 use halo2_proofs::plonk::{Error as ProofSystemError, Error};
 use logger::prelude::*;
 use std::result::Result;
@@ -105,12 +103,12 @@ impl From<ProofSystemError> for RuntimeError {
     }
 }
 
-impl Into<ProofSystemError> for RuntimeError {
-    fn into(self) -> ProofSystemError {
-        match self.status {
+impl From<RuntimeError> for ProofSystemError {
+    fn from(err: RuntimeError) -> Self {
+        match err.status {
             StatusCode::ProofSystemError(e) => e,
             _ => {
-                error!("RuntimeError: {:?}", self.status);
+                error!("RuntimeError: {:?}", err.status);
                 ProofSystemError::Synthesis
             }
         }

@@ -1,8 +1,6 @@
 // Copyright (c) zkMove Authors
 // SPDX-License-Identifier: Apache-2.0
 
-#![allow(clippy::redundant_clone)]
-
 use anyhow::Result;
 use halo2_proofs::pasta::{EqAffine, Fp};
 use halo2_proofs::poly::commitment::Params;
@@ -76,12 +74,8 @@ fn vm_test(path: &Path) -> datatest_stable::Result<()> {
         state.add_module(module);
     }
 
-    let move_circuit = runtime.create_move_circuit(
-        script.clone(),
-        compiled_modules.clone(),
-        config.args.clone(),
-        state.clone(),
-    );
+    let move_circuit =
+        runtime.create_move_circuit(script, compiled_modules, config.args, state.clone());
     let public_inputs = vec![Fp::zero()];
     debug!("Find the best suitable k for the circuit...");
     let k = runtime.find_best_k(&move_circuit, vec![public_inputs.clone()])?;

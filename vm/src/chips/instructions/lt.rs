@@ -81,7 +81,7 @@ impl<F: FieldExt> LtChip<F> {
                 // diff is reconstructed from the lower 16 bytes of the original value,
                 // it will always be in range 2^128.
                 //
-                s_lt.clone() * ((lhs - rhs) + out * range - diff_cells.expr()),
+                s_lt * ((lhs - rhs) + out * range - diff_cells.expr()),
             ]
         });
 
