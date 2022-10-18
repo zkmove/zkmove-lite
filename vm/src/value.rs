@@ -3,7 +3,6 @@
 
 use error::{RuntimeError, StatusCode, VmResult};
 use halo2_proofs::{arithmetic::FieldExt, circuit::Cell};
-use movelang::value::MoveValue::{Bool, U128, U64, U8};
 use movelang::value::{convert_to_field, move_div, move_rem};
 use movelang::value::{MoveValue, MoveValueType};
 
@@ -153,54 +152,6 @@ impl<F: FieldExt> PartialEq for Value<F> {
 impl<F: FieldExt> Eq for Value<F> {}
 
 impl<F: FieldExt> Value<F> {
-    pub fn add(a: Value<F>, b: Value<F>) -> VmResult<Value<F>> {
-        let value = a.value().and_then(|a| b.value().map(|b| a + b));
-        let c = Value::new_variable(value, None, a.ty())?;
-        Ok(c)
-    }
-
-    pub fn sub(a: Value<F>, b: Value<F>) -> VmResult<Value<F>> {
-        let value = a.value().and_then(|a| b.value().map(|b| a - b));
-        let c = Value::new_variable(value, None, a.ty())?;
-        Ok(c)
-    }
-
-    pub fn mul(a: Value<F>, b: Value<F>) -> VmResult<Value<F>> {
-        let value = a.value().and_then(|a| b.value().map(|b| a * b));
-        let c = Value::new_variable(value, None, a.ty())?;
-        Ok(c)
-    }
-
-    pub fn div(a: Value<F>, b: Value<F>) -> VmResult<Value<F>> {
-        let l_move: Option<MoveValue> = a.clone().into();
-        let r_move: Option<MoveValue> = b.clone().into();
-        match (l_move, r_move) {
-            (Some(l), Some(r)) => {
-                let quo = move_div(l, r)?;
-                let v = Some(convert_to_field::<F>(quo));
-                let value = Value::new_variable(v, None, a.ty())?;
-                Ok(value)
-            }
-            _ => Err(RuntimeError::new(StatusCode::ValueConversionError)
-                .with_message("Move value should not be None".to_string())),
-        }
-    }
-
-    pub fn rem(a: Value<F>, b: Value<F>) -> VmResult<Value<F>> {
-        let l_move: Option<MoveValue> = a.clone().into();
-        let r_move: Option<MoveValue> = b.clone().into();
-        match (l_move, r_move) {
-            (Some(l), Some(r)) => {
-                let rem = move_rem(l, r)?;
-                let v = Some(convert_to_field::<F>(rem));
-                let value = Value::new_variable(v, None, a.ty())?;
-                Ok(value)
-            }
-            _ => Err(RuntimeError::new(StatusCode::ValueConversionError)
-                .with_message("Move value should not be None".to_string())),
-        }
-    }
-
     pub fn eq(a: Value<F>, b: Value<F>) -> VmResult<Value<F>> {
         let value = match (a.value(), b.value()) {
             (Some(a), Some(b)) => {
@@ -239,23 +190,89 @@ impl<F: FieldExt> Value<F> {
         let c = Value::new_variable(Some(value), None, MoveValueType::Bool)?;
         Ok(c)
     }
+}
 
-    pub fn not(v: Value<F>) -> VmResult<Value<F>> {
-        let value = if v.is_zero() { F::one() } else { F::zero() };
+impl<F: FieldExt> std::ops::Add for Value<F> {
+    type Output = VmResult<Self>;
+    fn add(self, b: Value<F>) -> VmResult<Value<F>> {
+        let value = self.value().and_then(|a| b.value().map(|b| a + b));
+        let c = Value::new_variable(value, None, self.ty())?;
+        Ok(c)
+    }
+}
+
+impl<F: FieldExt> std::ops::Sub for Value<F> {
+    type Output = VmResult<Self>;
+    fn sub(self, b: Value<F>) -> VmResult<Value<F>> {
+        let value = self.value().and_then(|a| b.value().map(|b| a - b));
+        let c = Value::new_variable(value, None, self.ty())?;
+        Ok(c)
+    }
+}
+
+impl<F: FieldExt> std::ops::Mul for Value<F> {
+    type Output = VmResult<Self>;
+    fn mul(self, b: Value<F>) -> VmResult<Value<F>> {
+        let value = self.value().and_then(|a| b.value().map(|b| a * b));
+        let c = Value::new_variable(value, None, self.ty())?;
+        Ok(c)
+    }
+}
+
+impl<F: FieldExt> std::ops::Div for Value<F> {
+    type Output = VmResult<Self>;
+    fn div(self, b: Value<F>) -> VmResult<Value<F>> {
+        let l_move: Option<MoveValue> = self.clone().into();
+        let r_move: Option<MoveValue> = b.into();
+        match (l_move, r_move) {
+            (Some(l), Some(r)) => {
+                let quo = move_div(l, r)?;
+                let v = Some(convert_to_field::<F>(quo));
+                let value = Value::new_variable(v, None, self.ty())?;
+                Ok(value)
+            }
+            _ => Err(RuntimeError::new(StatusCode::ValueConversionError)
+                .with_message("Move value should not be None".to_string())),
+        }
+    }
+}
+
+impl<F: FieldExt> std::ops::Rem for Value<F> {
+    type Output = VmResult<Self>;
+    fn rem(self, b: Value<F>) -> VmResult<Value<F>> {
+        let l_move: Option<MoveValue> = self.clone().into();
+        let r_move: Option<MoveValue> = b.into();
+        match (l_move, r_move) {
+            (Some(l), Some(r)) => {
+                let rem = move_rem(l, r)?;
+                let v = Some(convert_to_field::<F>(rem));
+                let value = Value::new_variable(v, None, self.ty())?;
+                Ok(value)
+            }
+            _ => Err(RuntimeError::new(StatusCode::ValueConversionError)
+                .with_message("Move value should not be None".to_string())),
+        }
+    }
+}
+
+impl<F: FieldExt> std::ops::Not for Value<F> {
+    type Output = VmResult<Self>;
+    fn not(self) -> VmResult<Value<F>> {
+        let value = if self.is_zero() { F::one() } else { F::zero() };
         let c = Value::new_variable(Some(value), None, MoveValueType::Bool)?;
         Ok(c)
     }
 }
 
-impl<F: FieldExt> Into<Option<MoveValue>> for Value<F> {
-    fn into(self) -> Option<MoveValue> {
-        match self.value() {
+impl<F: FieldExt> From<Value<F>> for Option<MoveValue> {
+    fn from(value: Value<F>) -> Option<MoveValue> {
+        match value.value() {
             Some(field) => {
-                let value = match self.ty() {
-                    MoveValueType::U8 => U8(field.get_lower_128() as u8),
-                    MoveValueType::U64 => U64(field.get_lower_128() as u64),
-                    MoveValueType::U128 => U128(field.get_lower_128()),
-                    MoveValueType::Bool => Bool(field == F::one()),
+                let value = match value.ty() {
+                    MoveValueType::U8 => MoveValue::U8(field.get_lower_128() as u8),
+                    MoveValueType::U64 => MoveValue::U64(field.get_lower_128() as u64),
+                    MoveValueType::U128 => MoveValue::U128(field.get_lower_128()),
+                    MoveValueType::Bool => MoveValue::Bool(field == F::one()),
                     _ => unimplemented!(),
                 };
                 Some(value)

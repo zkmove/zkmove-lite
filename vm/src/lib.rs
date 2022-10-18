@@ -1,10 +1,6 @@
 // Copyright (c) zkMove Authors
 // SPDX-License-Identifier: Apache-2.0
 
-#![allow(clippy::from_over_into)]
-#![allow(clippy::redundant_clone)]
-#![allow(clippy::should_implement_trait)]
-
 pub mod chips;
 pub mod circuit;
 pub mod frame;
