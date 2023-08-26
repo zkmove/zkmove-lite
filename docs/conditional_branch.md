@@ -34,7 +34,7 @@ pub enum ProgramBlock<F: FieldExt> {
     ConditionalBlock(ConditionalBlock<F>),
 }
 ```
-Conditional branching is bing identified with specific code patterns. All code patterns should be covered.
+Conditional branching is being identified with specific code patterns. All code patterns should be covered.
 
 A: true and false branches are complete
 
