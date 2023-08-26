@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 use crate::chips::evaluation_chip::NUM_OF_ADVICE_COLUMNS;
+use crate::chips::utilities::Expr;
 use crate::value::Value;
 use halo2_proofs::{
     arithmetic::FieldExt,
@@ -63,6 +64,8 @@ impl<F: FieldExt> ConditionalSelectChip<F> {
             let s_cs = meta.query_selector(s_cs);
 
             vec![
+                // cond is 0 or 1
+                s_cs.clone() * (cond.clone() * (1.expr() - cond.clone())),
                 // lhs * cond + rhs * (1 - cond) = out
                 s_cs * ((lhs - rhs.clone()) * cond + rhs - out),
             ]
